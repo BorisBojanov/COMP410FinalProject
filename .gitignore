@@ -1,0 +1,28 @@
+# Build output
+target/
+*.class
+*.jar
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+*.eclipse
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Credentials and secrets - NEVER commit these
+credentials.json
+token.json
+*.env
+.env
+config/secrets.properties
+
+# Database files (local dev only)
+*.db
+*.sqlite
+
+# Maven
+.mvn/
