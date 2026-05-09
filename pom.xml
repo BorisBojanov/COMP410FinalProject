@@ -45,7 +45,6 @@
             <artifactId>jakarta.mail</artifactId>
             <version>2.0.1</version>
         </dependency>
-
         <!-- Google API Client (Gmail) -->
         <dependency>
             <groupId>com.google.api-client</groupId>
