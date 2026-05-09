@@ -6,10 +6,12 @@ import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
+import jakarta.mail.internet.MimeMultipart;
 import jakarta.mail.search.AndTerm;
 import jakarta.mail.search.FromStringTerm;
 import jakarta.mail.search.SearchTerm;
 import jakarta.mail.search.SubjectTerm;
+import jakarta.mail.BodyPart;
 
 
 /*
@@ -163,6 +165,49 @@ public class email {
         } catch (Exception e) {
             e.printStackTrace();
             return null;
+        }
+    }
+
+    public static String getText(Message[] message) {
+        // Implementation to extract text content from the fetched messages
+        // Email bodies can be plain text, HTML, or multipart (both)
+        try {
+            Object stuff = message[0].getContent();
+            if (stuff instanceof String) {
+                return (String) stuff;
+            }
+            if (stuff instanceof MimeMultipart multipart){
+                for (int i = 0; i < multipart.getCount(); i++) {
+                    BodyPart part = multipart.getBodyPart(i);
+                    if (part.isMimeType("text/plain")) {
+                        return (String) part.getContent();
+                    }
+                }
+            } 
+            // fallback if no text/plain part is found or content is of an unexpected type
+            return "";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    public static void checkDouplicateMessages(Message messages) {
+        // Check for duplicate messages based on unique identifiers (Message-ID header)
+        try{
+            String[] messageId = messages.getHeader("Message-ID");
+            // Store this ID in your DB — if it's already there, skip parsing
+        } catch (Exception e) {
+            e.printStackTrace();
+        }   
+    }
+
+    public static void closeStuff(Folder folder, Store store) {
+        try{
+            folder.close(false);  // false = don't expunge deleted messages
+            store.close();
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
