@@ -196,7 +196,7 @@ public class email {
         // Check for duplicate messages based on unique identifiers (Message-ID header)
         try{
             String[] messageId = messages.getHeader("Message-ID");
-            // Store this ID in your DB — if it's already there, skip parsing
+            // Store ID in DB — if it's already there, skip parsing
         } catch (Exception e) {
             e.printStackTrace();
         }   
