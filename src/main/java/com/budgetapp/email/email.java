@@ -75,7 +75,9 @@ public class email {
         properties.put("mail.store.protocol", "imaps");
         properties.put("mail.imaps.host", "outlook.office365.com"); // For Outlook/Office 365
         properties.put("mail.imaps.port", "993");
-        properties.put("mail.imaps.starttls.enable", "true"); 
+        properties.put("mail.imaps.starttls.enable", "true");
+        properties.put("mail.imaps.connectiontimeout", "10000"); // Optional: Set connection timeout
+        properties.put("mail.imaps.timeout", "10000"); // Optional:Read timeout
     }
 
     /*Connect to mail server and fetch emails
