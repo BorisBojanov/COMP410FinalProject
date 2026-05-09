@@ -6,7 +6,11 @@ import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
 import jakarta.mail.Store;
-import jakarta.mail.*;
+import jakarta.mail.search.AndTerm;
+import jakarta.mail.search.FromStringTerm;
+import jakarta.mail.search.SearchTerm;
+import jakarta.mail.search.SubjectTerm;
+
 
 /*
 JakartaMail API
@@ -41,10 +45,16 @@ public class email {
 
     // Constructor
     public email() {
-        configureGmail(properties); // update global properties with Gmail settings
-        Session session = Session.getInstance(properties);
         try {
+            configureGmail(properties); // update global properties with Gmail settings
+            Session session = Session.getInstance(properties);
             connectTomailServerStore(session);
+            Store store = connectTomailServerStore(session);
+            Folder f = openFolder(store, "INBOX");
+            SearchTerm filter = filterMessages("someBankAlerts@Cibc_DT_RBC.com");
+            // filterMessages("alerts@td.com", "transaction");
+            fetchMessages(f, filter);
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -68,8 +78,7 @@ public class email {
         properties.put("mail.imaps.starttls.enable", "true"); 
     }
 
-    /*
-    Connect to mail server and fetch emails
+    /*Connect to mail server and fetch emails
     
     For Gmail you cannot use your regular password. 
         You need an App Password:
@@ -88,26 +97,71 @@ public class email {
         }
     }
     
+    /* Open a specific folder like "INBOX" and fetch messages.
+    Arguments:
+    Store store: The connected mail store from which to access folders and messages.
 
-    public static void openFolder(Store store) {
+    Returns:
+    void
+    */
+    public static Folder openFolder(Store store, String folderName) {
         try{// Implementation to open a specific folder ("INBOX") and fetch messages
-            Folder inbox = store.getFolder("INBOX");
+            Folder inbox = store.getFolder(folderName);
             inbox.open(Folder.READ_ONLY);  // READ_ONLY for security requirement
-
+            return inbox;
         } catch (Exception e) {
             e.printStackTrace();
             // throw new Exception("Failed to open folder: " + e.getMessage());
+            return null;
         }
     }
 
-    public static void fetchMessages(Folder folder) {
-        try{Message[] message = folder.getMessages();
-        
+    // Search for emails FROM a specific sender
+    public static SearchTerm filterMessages(String senderEmail) {
+        try{
+            // Filter messages based on sender's email address
+            SearchTerm filter = new FromStringTerm(senderEmail);
+            return filter;
         } catch (Exception e) {
             e.printStackTrace();
+            return null;
+        }
+    }
+    public static SearchTerm filterMessages(String senderEmail, String subject) {
+        try{
+            SearchTerm filter = new AndTerm(
+                new FromStringTerm("alerts@td.com"),
+                new SubjectTerm("transaction")   // subject contains "transaction"
+            );
+            return filter;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 
-    public static void filter
+    /** Fetch messages from the specified folder
+     * Optionally, apply a search filter to retrieve specific emails.
+     *
+     * @param folder
+    */
+    public static Message[] fetchMessages(Folder folder) {
+        try{
+            Message[] message = folder.getMessages();
+            return message;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+    public static Message[] fetchMessages(Folder folder, SearchTerm filter) {
+        try{
+            Message[] message = folder.search(filter);
+            return message;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }
 
