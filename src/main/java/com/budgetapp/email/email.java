@@ -55,8 +55,14 @@ public class email {
             Folder f = openFolder(store, "INBOX");
             SearchTerm filter = filterMessages("someBankAlerts@Cibc_DT_RBC.com");
             // filterMessages("alerts@td.com", "transaction");
-            fetchMessages(f, filter);
-
+            Message[] message = fetchMessages(f, filter);
+            if (message[0] != null){
+                String text = getText(message);
+                System.out.println(text);
+                checkDouplicateMessages(message[0]);
+                closeStuff(f, store);
+            }
+            
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -192,13 +198,15 @@ public class email {
         }
     }
 
-    public static void checkDouplicateMessages(Message messages) {
+    public static boolean checkDouplicateMessages(Message messages) {
         // Check for duplicate messages based on unique identifiers (Message-ID header)
         try{
             String[] messageId = messages.getHeader("Message-ID");
             // Store ID in DB — if it's already there, skip parsing
+            return false;
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }   
     }
 
@@ -210,5 +218,7 @@ public class email {
             e.printStackTrace();
         }
     }
+
+
 }
 
