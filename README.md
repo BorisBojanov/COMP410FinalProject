@@ -43,6 +43,48 @@ Users connect their email account (read-only), and the app extracts transaction 
 
 ---
 
+## Current Prototype Features (feature/dashboard-ui)
+
+The current JavaFX dashboard prototype includes:
+
+- Dynamic transaction dashboard using temporary fake financial data
+- Monthly, yearly, and category-based transaction filtering
+- Live merchant search/filter functionality
+- Interactive spending analytics dashboard
+- Pie chart visualization for spending categories
+- Bar chart visualization for monthly spending trends
+- Scrollable transaction table
+- Dynamic summary cards:
+  - Total spending
+  - Remaining budget
+  - Transaction count
+- Centralized JavaFX CSS styling system
+- Modular layered architecture:
+  - `dashboard/`
+  - `model/`
+  - `service/`
+- Maven + JavaFX build configuration
+- Feature-branch Git workflow
+
+---
+
+## Dashboard Filters
+
+Users can currently filter dashboard data by:
+
+- Year
+- Month
+- Transaction category
+- Merchant name search
+
+All dashboard components update dynamically:
+- transaction table
+- charts
+- summary cards
+- category breakdowns
+
+---
+
 ## Project Structure
 
 ```
