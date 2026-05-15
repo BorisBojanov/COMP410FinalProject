@@ -11,7 +11,7 @@ public class DashboardView {
 
     public VBox getView() {
         Label title = new Label("BudgetApp Dashboard");
-        title.setStyle("-fx-font-size: 24px; -fx-font-weight: bold;");
+	title.getStyleClass().add("title");
 
         HBox summaryCards = new HBox(15);
         summaryCards.getChildren().addAll(
@@ -41,10 +41,10 @@ public class DashboardView {
     private VBox createCard(String label, String value) {
         Label labelText = new Label(label);
         Label valueText = new Label(value);
-        valueText.setStyle("-fx-font-size: 20px; -fx-font-weight: bold;");
+        valueText.getStyleClass().add("card-value");
 
         VBox card = new VBox(8);
-        card.setStyle("-fx-padding: 15; -fx-background-color: #eeeeee; -fx-border-color: #cccccc;");
+        card.getStyleClass().add("card");
         card.getChildren().addAll(labelText, valueText);
         return card;
     }

@@ -13,6 +13,10 @@ public class Main extends Application {
 
         Scene scene = new Scene(dashboardView.getView(), 900, 550);
 
+	scene.getStylesheets().add(
+        	getClass().getResource("/styles.css").toExternalForm()
+	);
+
         stage.setTitle("BudgetApp");
         stage.setScene(scene);
         stage.show();
