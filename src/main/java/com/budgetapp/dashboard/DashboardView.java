@@ -2,6 +2,7 @@ package com.budgetapp.dashboard;
 
 import com.budgetapp.model.Transaction;
 import com.budgetapp.service.FakeDataService;
+import javafx.collections.ObservableList;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
@@ -9,20 +10,100 @@ import javafx.scene.layout.*;
 
 public class DashboardView {
 
+    private ObservableList<Transaction> getFilteredTransactions(String month, String year, String category) {
+        return FakeDataService.getTransactions().filtered(transaction -> {
+            boolean matchesYear = transaction.getDate().startsWith(year + "-");
+
+            boolean matchesMonth = month.equals("All") ||
+                    transaction.getDate().startsWith(year + "-" + getMonthNumber(month));
+
+            boolean matchesCategory = category.equals("All") ||
+                    transaction.getCategory().equals(category);
+
+            return matchesYear && matchesMonth && matchesCategory;
+        });
+    }
+
+    private String getMonthNumber(String month) {
+        return switch (month) {
+            case "January" -> "01";
+            case "February" -> "02";
+            case "March" -> "03";
+            case "April" -> "04";
+            case "May" -> "05";
+            case "June" -> "06";
+            case "July" -> "07";
+            case "August" -> "08";
+            case "September" -> "09";
+            case "October" -> "10";
+            case "November" -> "11";
+            case "December" -> "12";
+            default -> "05";
+        };
+    }
+
     public VBox getView() {
         Label title = new Label("BudgetApp Dashboard");
-	title.getStyleClass().add("title");
+        title.getStyleClass().add("title");
 
-        HBox summaryCards = new HBox(15);
-        summaryCards.getChildren().addAll(
-                createCard("Monthly Spending", "$847.25"),
-                createCard("Budget Remaining", "$352.75"),
-                createCard("Transactions", "5")
+        ComboBox<String> yearFilter = new ComboBox<>();
+        yearFilter.getItems().addAll("2026");
+        yearFilter.setValue("2026");
+
+        ComboBox<String> monthFilter = new ComboBox<>();
+        monthFilter.getItems().addAll(
+                "All",
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+        );
+        monthFilter.setValue("All");
+
+        ComboBox<String> categoryFilter = new ComboBox<>();
+        categoryFilter.getItems().addAll(
+                "All",
+                "Food",
+                "Transport",
+                "Subscription",
+                "Groceries",
+                "Shopping",
+                "Entertainment",
+                "Travel",
+                "Technology",
+                "Health",
+                "Pets",
+                "Books"
+        );
+        categoryFilter.setValue("All");
+
+        HBox filters = new HBox(10);
+        filters.getChildren().addAll(
+                new Label("Year:"), yearFilter,
+                new Label("Month:"), monthFilter,
+                new Label("Category:"), categoryFilter
         );
 
-        VBox categoryPanel = createCategoryPanel();
-        TableView<Transaction> table = createTransactionTable();
-        BarChart<String, Number> monthlyChart = createMonthlySpendingChart();
+        HBox summaryCards = createSummaryCards(
+                monthFilter.getValue(),
+                yearFilter.getValue(),
+                categoryFilter.getValue()
+        );
+
+        VBox categoryPanel = createCategoryPanel(
+                monthFilter.getValue(),
+                yearFilter.getValue(),
+                categoryFilter.getValue()
+        );
+
+        TableView<Transaction> table = createTransactionTable(
+                monthFilter.getValue(),
+                yearFilter.getValue(),
+                categoryFilter.getValue()
+        );
+
+        BarChart<String, Number> monthlyChart = createMonthlySpendingChart(
+                yearFilter.getValue(),
+                categoryFilter.getValue()
+        );
 
         VBox centerPanel = new VBox(15);
         centerPanel.getChildren().addAll(table, monthlyChart);
@@ -31,11 +112,52 @@ public class DashboardView {
         dashboard.setLeft(categoryPanel);
         dashboard.setCenter(centerPanel);
 
+        Runnable refreshDashboard = () -> {
+            String selectedMonth = monthFilter.getValue();
+            String selectedYear = yearFilter.getValue();
+            String selectedCategory = categoryFilter.getValue();
+
+            table.setItems(getFilteredTransactions(selectedMonth, selectedYear, selectedCategory));
+
+            summaryCards.getChildren().clear();
+            summaryCards.getChildren().addAll(
+                    createSummaryCards(selectedMonth, selectedYear, selectedCategory).getChildren()
+            );
+
+            dashboard.setLeft(createCategoryPanel(selectedMonth, selectedYear, selectedCategory));
+            centerPanel.getChildren().set(1, createMonthlySpendingChart(selectedYear, selectedCategory));
+        };
+
+        monthFilter.setOnAction(event -> refreshDashboard.run());
+        yearFilter.setOnAction(event -> refreshDashboard.run());
+        categoryFilter.setOnAction(event -> refreshDashboard.run());
+
         VBox root = new VBox(20);
         root.setStyle("-fx-padding: 20;");
-        root.getChildren().addAll(title, summaryCards, dashboard);
+        root.getChildren().addAll(title, filters, summaryCards, dashboard);
 
         return root;
+    }
+
+    private HBox createSummaryCards(String selectedMonth, String selectedYear, String selectedCategory) {
+        ObservableList<Transaction> transactions =
+                getFilteredTransactions(selectedMonth, selectedYear, selectedCategory);
+
+        double totalSpending = transactions.stream()
+                .mapToDouble(Transaction::getAmount)
+                .sum();
+
+        double budget = selectedMonth.equals("All") ? 18000.00 : 1500.00;
+        double remainingBudget = budget - totalSpending;
+
+        HBox summaryCards = new HBox(15);
+        summaryCards.getChildren().addAll(
+                createCard("Spending", String.format("$%.2f", totalSpending)),
+                createCard("Budget Remaining", String.format("$%.2f", remainingBudget)),
+                createCard("Transactions", String.valueOf(transactions.size()))
+        );
+
+        return summaryCards;
     }
 
     private VBox createCard(String label, String value) {
@@ -49,32 +171,52 @@ public class DashboardView {
         return card;
     }
 
-    private VBox createCategoryPanel() {
-        VBox categoryPanel = new VBox(15);
-        categoryPanel.setStyle("-fx-padding: 15; -fx-background-color: #f3f3f3;");
+    private VBox createCategoryPanel(String selectedMonth, String selectedYear, String selectedCategory) {
+        ObservableList<Transaction> transactions =
+                getFilteredTransactions(selectedMonth, selectedYear, selectedCategory);
 
         PieChart pieChart = new PieChart();
-        pieChart.getData().add(new PieChart.Data("Food", 6.25));
-        pieChart.getData().add(new PieChart.Data("Transport", 74.20));
-        pieChart.getData().add(new PieChart.Data("Subscription", 16.99));
-        pieChart.getData().add(new PieChart.Data("Groceries", 92.31));
+        VBox categoryPanel = new VBox(15);
+        categoryPanel.getStyleClass().add("sidebar");
+        categoryPanel.getChildren().add(new Label("Categories"));
+
+        String[] categories = {
+                "Food", "Transport", "Subscription", "Groceries", "Shopping",
+                "Entertainment", "Travel", "Technology", "Health", "Pets", "Books"
+        };
+
+        for (String category : categories) {
+            double total = getCategoryTotal(transactions, category);
+
+            if (total > 0) {
+                categoryPanel.getChildren().add(
+                        new Label(String.format("%s: $%.2f", category, total))
+                );
+                pieChart.getData().add(new PieChart.Data(category, total));
+            }
+        }
+
         pieChart.setTitle("Spending by Category");
-        pieChart.setPrefWidth(250);
+        pieChart.setPrefWidth(300);
         pieChart.setPrefHeight(300);
 
-        categoryPanel.getChildren().addAll(
-                new Label("Categories"),
-                new Label("Food: $6.25"),
-                new Label("Transport: $74.20"),
-                new Label("Subscription: $16.99"),
-                new Label("Groceries: $92.31"),
-                pieChart
-        );
+        categoryPanel.getChildren().add(pieChart);
 
         return categoryPanel;
     }
 
-    private TableView<Transaction> createTransactionTable() {
+    private double getCategoryTotal(ObservableList<Transaction> transactions, String category) {
+        return transactions.stream()
+                .filter(transaction -> transaction.getCategory().equals(category))
+                .mapToDouble(Transaction::getAmount)
+                .sum();
+    }
+
+    private TableView<Transaction> createTransactionTable(
+            String selectedMonth,
+            String selectedYear,
+            String selectedCategory
+    ) {
         TableView<Transaction> table = new TableView<>();
 
         TableColumn<Transaction, String> dateColumn = new TableColumn<>("Date");
@@ -90,12 +232,12 @@ public class DashboardView {
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
 
         table.getColumns().addAll(dateColumn, merchantColumn, categoryColumn, amountColumn);
-        table.setItems(FakeDataService.getTransactions());
+        table.setItems(getFilteredTransactions(selectedMonth, selectedYear, selectedCategory));
 
         return table;
     }
 
-    private BarChart<String, Number> createMonthlySpendingChart() {
+    private BarChart<String, Number> createMonthlySpendingChart(String selectedYear, String selectedCategory) {
         CategoryAxis xAxis = new CategoryAxis();
         xAxis.setLabel("Month");
 
@@ -106,13 +248,24 @@ public class DashboardView {
         barChart.setTitle("Monthly Spending Trend");
 
         XYChart.Series<String, Number> spendingSeries = new XYChart.Series<>();
-        spendingSeries.setName("Spending");
+        spendingSeries.setName(selectedCategory.equals("All") ? "All Categories" : selectedCategory);
 
-        spendingSeries.getData().add(new XYChart.Data<>("Jan", 720));
-        spendingSeries.getData().add(new XYChart.Data<>("Feb", 810));
-        spendingSeries.getData().add(new XYChart.Data<>("Mar", 690));
-        spendingSeries.getData().add(new XYChart.Data<>("Apr", 930));
-        spendingSeries.getData().add(new XYChart.Data<>("May", 847));
+        String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+        for (int i = 1; i <= 12; i++) {
+            String monthNumber = String.format("%02d", i);
+
+            double total = FakeDataService.getTransactions().stream()
+                    .filter(transaction -> transaction.getDate().startsWith(selectedYear + "-" + monthNumber))
+                    .filter(transaction ->
+                            selectedCategory.equals("All") ||
+                                    transaction.getCategory().equals(selectedCategory)
+                    )
+                    .mapToDouble(Transaction::getAmount)
+                    .sum();
+
+            spendingSeries.getData().add(new XYChart.Data<>(months[i - 1], total));
+        }
 
         barChart.getData().add(spendingSeries);
         barChart.setPrefHeight(250);
