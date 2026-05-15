@@ -1,16 +1,14 @@
 package com.budgetapp;
 
+import com.budgetapp.model.Transaction;
+import com.budgetapp.service.FakeDataService;
 import javafx.application.Application;
 import javafx.scene.Scene;
+import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
-import javafx.scene.chart.PieChart;
-import javafx.scene.chart.BarChart;
-import javafx.scene.chart.CategoryAxis;
-import javafx.scene.chart.NumberAxis;
-import javafx.scene.chart.XYChart;
 
 public class Main extends Application {
 
@@ -26,44 +24,16 @@ public class Main extends Application {
                 createCard("Transactions", "5")
         );
 
-        VBox categoryPanel = new VBox(15);
-	categoryPanel.setStyle("-fx-padding: 15; -fx-background-color: #f3f3f3;");
-
-	Label categoryTitle = new Label("Categories");
-
-	Label food = new Label("Food: $6.25");
-	Label transport = new Label("Transport: $74.20");
-	Label subscription = new Label("Subscription: $16.99");
-	Label groceries = new Label("Groceries: $92.31");
-
-	PieChart pieChart = new PieChart();
-	pieChart.getData().add(new PieChart.Data("Food", 6.25));
-	pieChart.getData().add(new PieChart.Data("Transport", 74.20));
-	pieChart.getData().add(new PieChart.Data("Subscription", 16.99));
-	pieChart.getData().add(new PieChart.Data("Groceries", 92.31));
-	pieChart.setTitle("Spending by Category");
-	pieChart.setPrefWidth(250);
-	pieChart.setPrefHeight(300);
-
-	categoryPanel.getChildren().addAll(
-        	categoryTitle,
-        	food,
-        	transport,
-        	subscription,
-        	groceries,
-        	pieChart
-);
-	
-
+        VBox categoryPanel = createCategoryPanel();
         TableView<Transaction> table = createTransactionTable();
-	
-	BarChart<String, Number> monthlyChart = createMonthlySpendingChart();
+        BarChart<String, Number> monthlyChart = createMonthlySpendingChart();
+
+        VBox centerPanel = new VBox(15);
+        centerPanel.getChildren().addAll(table, monthlyChart);
 
         BorderPane dashboard = new BorderPane();
         dashboard.setLeft(categoryPanel);
-        VBox centerPanel = new VBox(15);
-	centerPanel.getChildren().addAll(table, monthlyChart);
-	dashboard.setCenter(centerPanel);
+        dashboard.setCenter(centerPanel);
 
         VBox root = new VBox(20);
         root.setStyle("-fx-padding: 20;");
@@ -87,6 +57,31 @@ public class Main extends Application {
         return card;
     }
 
+    private VBox createCategoryPanel() {
+        VBox categoryPanel = new VBox(15);
+        categoryPanel.setStyle("-fx-padding: 15; -fx-background-color: #f3f3f3;");
+
+        PieChart pieChart = new PieChart();
+        pieChart.getData().add(new PieChart.Data("Food", 6.25));
+        pieChart.getData().add(new PieChart.Data("Transport", 74.20));
+        pieChart.getData().add(new PieChart.Data("Subscription", 16.99));
+        pieChart.getData().add(new PieChart.Data("Groceries", 92.31));
+        pieChart.setTitle("Spending by Category");
+        pieChart.setPrefWidth(250);
+        pieChart.setPrefHeight(300);
+
+        categoryPanel.getChildren().addAll(
+                new Label("Categories"),
+                new Label("Food: $6.25"),
+                new Label("Transport: $74.20"),
+                new Label("Subscription: $16.99"),
+                new Label("Groceries: $92.31"),
+                pieChart
+        );
+
+        return categoryPanel;
+    }
+
     private TableView<Transaction> createTransactionTable() {
         TableView<Transaction> table = new TableView<>();
 
@@ -103,63 +98,37 @@ public class Main extends Application {
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
 
         table.getColumns().addAll(dateColumn, merchantColumn, categoryColumn, amountColumn);
-
-        table.getItems().addAll(
-                new Transaction("2026-05-01", "Starbucks", "Food", 6.25),
-                new Transaction("2026-05-02", "Uber", "Transport", 18.40),
-                new Transaction("2026-05-03", "Netflix", "Subscription", 16.99),
-                new Transaction("2026-05-04", "Walmart", "Groceries", 92.31),
-                new Transaction("2026-05-05", "Shell", "Transport", 55.80)
-        );
+        table.setItems(FakeDataService.getTransactions());
 
         return table;
     }
 
-private BarChart<String, Number> createMonthlySpendingChart() {
-    CategoryAxis xAxis = new CategoryAxis();
-    xAxis.setLabel("Month");
+    private BarChart<String, Number> createMonthlySpendingChart() {
+        CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setLabel("Month");
 
-    NumberAxis yAxis = new NumberAxis();
-    yAxis.setLabel("Amount Spent");
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Amount Spent");
 
-    BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
-    barChart.setTitle("Monthly Spending Trend");
+        BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setTitle("Monthly Spending Trend");
 
-    XYChart.Series<String, Number> spendingSeries = new XYChart.Series<>();
-    spendingSeries.setName("Spending");
+        XYChart.Series<String, Number> spendingSeries = new XYChart.Series<>();
+        spendingSeries.setName("Spending");
 
-    spendingSeries.getData().add(new XYChart.Data<>("Jan", 720));
-    spendingSeries.getData().add(new XYChart.Data<>("Feb", 810));
-    spendingSeries.getData().add(new XYChart.Data<>("Mar", 690));
-    spendingSeries.getData().add(new XYChart.Data<>("Apr", 930));
-    spendingSeries.getData().add(new XYChart.Data<>("May", 847));
+        spendingSeries.getData().add(new XYChart.Data<>("Jan", 720));
+        spendingSeries.getData().add(new XYChart.Data<>("Feb", 810));
+        spendingSeries.getData().add(new XYChart.Data<>("Mar", 690));
+        spendingSeries.getData().add(new XYChart.Data<>("Apr", 930));
+        spendingSeries.getData().add(new XYChart.Data<>("May", 847));
 
-    barChart.getData().add(spendingSeries);
-    barChart.setPrefHeight(250);
+        barChart.getData().add(spendingSeries);
+        barChart.setPrefHeight(250);
 
-    return barChart;
-	}
+        return barChart;
+    }
 
     public static void main(String[] args) {
         launch();
-    }
-
-    public static class Transaction {
-        private final String date;
-        private final String merchant;
-        private final String category;
-        private final double amount;
-
-        public Transaction(String date, String merchant, String category, double amount) {
-            this.date = date;
-            this.merchant = merchant;
-            this.category = category;
-            this.amount = amount;
-        }
-
-        public String getDate() { return date; }
-        public String getMerchant() { return merchant; }
-        public String getCategory() { return category; }
-        public double getAmount() { return amount; }
     }
 }
