@@ -7,6 +7,10 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
 import javafx.stage.Stage;
 import javafx.scene.chart.PieChart;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
+import javafx.scene.chart.XYChart;
 
 public class Main extends Application {
 
@@ -52,10 +56,14 @@ public class Main extends Application {
 	
 
         TableView<Transaction> table = createTransactionTable();
+	
+	BarChart<String, Number> monthlyChart = createMonthlySpendingChart();
 
         BorderPane dashboard = new BorderPane();
         dashboard.setLeft(categoryPanel);
-        dashboard.setCenter(table);
+        VBox centerPanel = new VBox(15);
+	centerPanel.getChildren().addAll(table, monthlyChart);
+	dashboard.setCenter(centerPanel);
 
         VBox root = new VBox(20);
         root.setStyle("-fx-padding: 20;");
@@ -106,6 +114,31 @@ public class Main extends Application {
 
         return table;
     }
+
+private BarChart<String, Number> createMonthlySpendingChart() {
+    CategoryAxis xAxis = new CategoryAxis();
+    xAxis.setLabel("Month");
+
+    NumberAxis yAxis = new NumberAxis();
+    yAxis.setLabel("Amount Spent");
+
+    BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
+    barChart.setTitle("Monthly Spending Trend");
+
+    XYChart.Series<String, Number> spendingSeries = new XYChart.Series<>();
+    spendingSeries.setName("Spending");
+
+    spendingSeries.getData().add(new XYChart.Data<>("Jan", 720));
+    spendingSeries.getData().add(new XYChart.Data<>("Feb", 810));
+    spendingSeries.getData().add(new XYChart.Data<>("Mar", 690));
+    spendingSeries.getData().add(new XYChart.Data<>("Apr", 930));
+    spendingSeries.getData().add(new XYChart.Data<>("May", 847));
+
+    barChart.getData().add(spendingSeries);
+    barChart.setPrefHeight(250);
+
+    return barChart;
+	}
 
     public static void main(String[] args) {
         launch();
