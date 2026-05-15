@@ -10,7 +10,7 @@ import javafx.scene.layout.*;
 
 public class DashboardView {
 
-    private ObservableList<Transaction> getFilteredTransactions(String month, String year, String category) {
+    private ObservableList<Transaction> getFilteredTransactions(String month, String year, String category, String searchText) {
         return FakeDataService.getTransactions().filtered(transaction -> {
             boolean matchesYear = transaction.getDate().startsWith(year + "-");
 
@@ -20,7 +20,11 @@ public class DashboardView {
             boolean matchesCategory = category.equals("All") ||
                     transaction.getCategory().equals(category);
 
-            return matchesYear && matchesMonth && matchesCategory;
+	   boolean matchesSearch = searchText == null ||
+     	   searchText.isBlank() ||
+  	   transaction.getMerchant().toLowerCase().contains(searchText.toLowerCase());
+
+            return matchesYear && matchesMonth && matchesCategory && matchesSearch;
         });
     }
 
@@ -74,30 +78,36 @@ public class DashboardView {
                 "Books"
         );
         categoryFilter.setValue("All");
+	TextField merchantSearch = new TextField();
+	merchantSearch.setPromptText("Search merchant...");
 
         HBox filters = new HBox(10);
         filters.getChildren().addAll(
                 new Label("Year:"), yearFilter,
                 new Label("Month:"), monthFilter,
-                new Label("Category:"), categoryFilter
+                new Label("Category:"), categoryFilter,
+		new Label("Merchant:"), merchantSearch
         );
 
         HBox summaryCards = createSummaryCards(
                 monthFilter.getValue(),
                 yearFilter.getValue(),
-                categoryFilter.getValue()
+                categoryFilter.getValue(),
+		merchantSearch.getText()
         );
 
         VBox categoryPanel = createCategoryPanel(
                 monthFilter.getValue(),
                 yearFilter.getValue(),
-                categoryFilter.getValue()
+                categoryFilter.getValue(),
+		merchantSearch.getText()
         );
 
         TableView<Transaction> table = createTransactionTable(
                 monthFilter.getValue(),
                 yearFilter.getValue(),
-                categoryFilter.getValue()
+                categoryFilter.getValue(),
+		merchantSearch.getText()
         );
 
         BarChart<String, Number> monthlyChart = createMonthlySpendingChart(
@@ -116,21 +126,34 @@ public class DashboardView {
             String selectedMonth = monthFilter.getValue();
             String selectedYear = yearFilter.getValue();
             String selectedCategory = categoryFilter.getValue();
+	    String searchText = merchantSearch.getText();
 
-            table.setItems(getFilteredTransactions(selectedMonth, selectedYear, selectedCategory));
+            table.setItems(getFilteredTransactions(
+        	selectedMonth,
+        	selectedYear,
+        	selectedCategory,
+        	searchText
+));
 
             summaryCards.getChildren().clear();
             summaryCards.getChildren().addAll(
-                    createSummaryCards(selectedMonth, selectedYear, selectedCategory).getChildren()
+                    createSummaryCards(selectedMonth, selectedYear, selectedCategory, searchText).getChildren()
             );
 
-            dashboard.setLeft(createCategoryPanel(selectedMonth, selectedYear, selectedCategory));
+            dashboard.setLeft(createCategoryPanel(
+       		 selectedMonth,
+       		 selectedYear,
+      		 selectedCategory,
+        	 searchText
+));
             centerPanel.getChildren().set(1, createMonthlySpendingChart(selectedYear, selectedCategory));
         };
 
         monthFilter.setOnAction(event -> refreshDashboard.run());
         yearFilter.setOnAction(event -> refreshDashboard.run());
         categoryFilter.setOnAction(event -> refreshDashboard.run());
+
+	merchantSearch.textProperty().addListener((obs, oldValue, newValue) -> refreshDashboard.run());
 
         VBox root = new VBox(20);
         root.setStyle("-fx-padding: 20;");
@@ -139,9 +162,9 @@ public class DashboardView {
         return root;
     }
 
-    private HBox createSummaryCards(String selectedMonth, String selectedYear, String selectedCategory) {
+    private HBox createSummaryCards(String selectedMonth, String selectedYear, String selectedCategory, String searchText) {
         ObservableList<Transaction> transactions =
-                getFilteredTransactions(selectedMonth, selectedYear, selectedCategory);
+                getFilteredTransactions(selectedMonth, selectedYear, selectedCategory, searchText);
 
         double totalSpending = transactions.stream()
                 .mapToDouble(Transaction::getAmount)
@@ -171,9 +194,9 @@ public class DashboardView {
         return card;
     }
 
-    private VBox createCategoryPanel(String selectedMonth, String selectedYear, String selectedCategory) {
+    private VBox createCategoryPanel(String selectedMonth, String selectedYear, String selectedCategory, String searchText) {
         ObservableList<Transaction> transactions =
-                getFilteredTransactions(selectedMonth, selectedYear, selectedCategory);
+                getFilteredTransactions(selectedMonth, selectedYear, selectedCategory, searchText);
 
         PieChart pieChart = new PieChart();
         VBox categoryPanel = new VBox(15);
@@ -215,7 +238,8 @@ public class DashboardView {
     private TableView<Transaction> createTransactionTable(
             String selectedMonth,
             String selectedYear,
-            String selectedCategory
+            String selectedCategory,
+	    String searchText
     ) {
         TableView<Transaction> table = new TableView<>();
 
@@ -232,7 +256,7 @@ public class DashboardView {
         amountColumn.setCellValueFactory(new PropertyValueFactory<>("amount"));
 
         table.getColumns().addAll(dateColumn, merchantColumn, categoryColumn, amountColumn);
-        table.setItems(getFilteredTransactions(selectedMonth, selectedYear, selectedCategory));
+        table.setItems(getFilteredTransactions(selectedMonth, selectedYear, selectedCategory, searchText));
 
         return table;
     }
