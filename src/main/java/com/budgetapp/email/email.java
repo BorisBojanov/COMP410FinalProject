@@ -44,27 +44,32 @@ Reading Emails
 public class email {
     // Class variables
     Properties properties = new Properties();
+    String protocol = "imaps"; // Default protocol for secure IMAP
+    String email = "";
+    String appPassword = "";
 
     // Constructor
     public email() {
+        configureGmail(properties); // update global properties with Gmail settings
+        Session session = Session.getInstance(properties);
+        // connectTomailServerStore(session);
+        Store store = connectTomailServerStore(session, email, appPassword);
+        Folder f = openFolder(store, "INBOX");
+        
         try {
-            configureGmail(properties); // update global properties with Gmail settings
-            Session session = Session.getInstance(properties);
-            connectTomailServerStore(session);
-            Store store = connectTomailServerStore(session);
-            Folder f = openFolder(store, "INBOX");
             SearchTerm filter = filterMessages("someBankAlerts@Cibc_DT_RBC.com");
             // filterMessages("alerts@td.com", "transaction");
             Message[] message = fetchMessages(f, filter);
-            if (message[0] != null){
-                String text = getText(message);
+            if ( message.length > 0 && message[0] != null) { // check message.length before message[0]
+                String text = getText(message[0]);
                 System.out.println(text);
-                checkDouplicateMessages(message[0]);
-                closeStuff(f, store);
-            }
-            
+                getMessageID(message[0]);
+            } 
         } catch (Exception e) {
             e.printStackTrace();
+        } finally{
+            // Any cleanup if necessary
+            closeStuff(f, store);
         }
         
     }
@@ -95,10 +100,11 @@ public class email {
             (Google Account → Security → 2-Step Verification → App Passwords). 
     Same for Outlook.
     */ 
-    public static Store connectTomailServerStore(Session session){
-        try{// Implementation to connect to the mail server using the provided properties and credentials
+    public static Store connectTomailServerStore(Session session, String email, String appPassword) {
+    // Implementation to connect to the mail server using the provided properties and credentials
+        try{
             Store store = session.getStore("imaps");
-            store.connect("imap.gmail.com", "your@gmail.com", "your-app-password");
+            store.connect("imap.gmail.com", email, appPassword);
             return store;
         } catch (Exception e) {
             e.printStackTrace();
@@ -140,8 +146,8 @@ public class email {
     public static SearchTerm filterMessages(String senderEmail, String subject) {
         try{
             SearchTerm filter = new AndTerm(
-                new FromStringTerm("alerts@td.com"),
-                new SubjectTerm("transaction")   // subject contains "transaction"
+                new FromStringTerm(senderEmail), // sender is "someBankAlerts@Cibc_DT_RBC.com"
+                new SubjectTerm(subject)   // subject contains "transaction"
             );
             return filter;
         } catch (Exception e) {
@@ -174,11 +180,11 @@ public class email {
         }
     }
 
-    public static String getText(Message[] message) {
+    public static String getText(Message message) {
         // Implementation to extract text content from the fetched messages
         // Email bodies can be plain text, HTML, or multipart (both)
         try {
-            Object stuff = message[0].getContent();
+            Object stuff = message.getContent();
             if (stuff instanceof String) {
                 return (String) stuff;
             }
@@ -191,29 +197,35 @@ public class email {
                 }
             } 
             // fallback if no text/plain part is found or content is of an unexpected type
-            return "";
+            return "no text/plain part is found";
         } catch (Exception e) {
             e.printStackTrace();
             return null;
         }
     }
 
-    public static boolean checkDouplicateMessages(Message messages) {
+    public static String getMessageID(Message messages) {
         // Check for duplicate messages based on unique identifiers (Message-ID header)
         try{
             String[] messageId = messages.getHeader("Message-ID");
-            // Store ID in DB — if it's already there, skip parsing
-            return false;
+            if (messageId != null && messageId.length > 0){
+                return messageId[0];
+            }
+            return null;
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return null; 
         }   
     }
 
     public static void closeStuff(Folder folder, Store store) {
         try{
-            folder.close(false);  // false = don't expunge deleted messages
-            store.close();
+            if (folder != null && folder.isOpen()){
+                folder.close(false);  // false = don't expunge deleted messages
+            }
+            if (store != null){
+                store.close();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
