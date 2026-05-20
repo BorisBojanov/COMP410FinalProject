@@ -45,34 +45,42 @@ public class email {
     // Class variables
     Properties properties = new Properties();
     String protocol = "imaps"; // Default protocol for secure IMAP
-    String email = "";
+    String email = "boris.bojanov@gmail.com";
     String appPassword = "";
+    Store store;
+    Folder folder;
+    Session session;
 
     // Constructor
-    public email() {
+    public email(String emailAddress, String appPassword) {
+        this.email = emailAddress;
+        this.appPassword = appPassword;
         configureGmail(properties); // update global properties with Gmail settings
-        Session session = Session.getInstance(properties);
-        // connectTomailServerStore(session);
-        Store store = connectTomailServerStore(session, email, appPassword);
-        Folder f = openFolder(store, "INBOX");
-        
-        try {
-            SearchTerm filter = filterMessages("someBankAlerts@Cibc_DT_RBC.com");
-            // filterMessages("alerts@td.com", "transaction");
-            Message[] message = fetchMessages(f, filter);
-            if ( message.length > 0 && message[0] != null) { // check message.length before message[0]
-                String text = getText(message[0]);
-                System.out.println(text);
-                getMessageID(message[0]);
-            } 
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally{
-            // Any cleanup if necessary
-            closeStuff(f, store);
-        }
-        
+        session = Session.getInstance(properties);
+        store = connectTomailServerStore(session, email, appPassword);
     }
+
+    public Session getSession() {
+        return session;
+    }
+    public Store getStore() {
+        return store;
+    }
+    public Folder getFolder() {
+        return folder;
+    }
+
+
+    public void setSession(Session session) {
+        this.session = session;
+    }
+    public void setStore(Store store) {
+        this.store = store;
+    }
+    public void setFolder(Folder folder) {
+        this.folder = folder;
+    }
+
 
     // Methods to configure email providers
     // Gmail configuration
@@ -113,6 +121,9 @@ public class email {
         }
     }
     
+    public void openInbox() {
+        this.folder = openFolder(this.store, "INBOX");
+    }
     /* Open a specific folder like "INBOX" and fetch messages.
     Arguments:
     Store store: The connected mail store from which to access folders and messages.
@@ -180,6 +191,13 @@ public class email {
         }
     }
 
+    // 
+    public Message[] getMessages(String senderEmail){
+        SearchTerm filter = filterMessages(senderEmail);
+        Message[] message = fetchMessages(folder, filter);
+        return message;
+    }
+
     public static String getText(Message message) {
         // Implementation to extract text content from the fetched messages
         // Email bodies can be plain text, HTML, or multipart (both)
@@ -218,7 +236,10 @@ public class email {
         }   
     }
 
-    public static void closeStuff(Folder folder, Store store) {
+    public void close() {
+        closeConnection(this.folder, this.store);
+    }
+    public static void closeConnection(Folder folder, Store store) {
         try{
             if (folder != null && folder.isOpen()){
                 folder.close(false);  // false = don't expunge deleted messages
@@ -230,7 +251,5 @@ public class email {
             e.printStackTrace();
         }
     }
-
-
+      
 }
-
