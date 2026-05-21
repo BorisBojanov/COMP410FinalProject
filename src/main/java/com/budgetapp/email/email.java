@@ -1,7 +1,41 @@
 package com.budgetapp.email;
+/* EmailAccount
+Stores connected Gmail or Outlook account information.
+
+accountId	            int	Attribute
+emailAddress	        String	Attribute
+provider	            String	Attribute
+accessToken	            String	Attribute
+isConnected	            boolean	Attribute
+connect()	            boolean	Method
+disconnect()	        void	Method
+authorizeAccess()	    boolean	Method
+*/
+
+/* EmailService
+Connects to the user’s email provider and retrieves email messages.
+
+serviceName	                                        String	Attribute
+fetchEmails(account: EmailAccount)	                List<EmailMessage>	Method
+filterTransactionEmails(emails: List<EmailMessage>)	List<EmailMessage>	Method
+*/
+
+/* EmailMessage
+Represents an email retrieved from the user’s inbox.
+
+messageId	            String	Attribute
+sender	                String	Attribute
+subject	                String	Attribute
+body	                String	Attribute
+receivedDate	        Date	Attribute
+processed	            boolean	Attribute
+isTransactionEmail()	boolean	Method
+markAsProcessed()	    void	Method
+*/
 
 import java.util.Properties;
 
+import jakarta.mail.BodyPart;
 import jakarta.mail.Folder;
 import jakarta.mail.Message;
 import jakarta.mail.Session;
@@ -11,7 +45,6 @@ import jakarta.mail.search.AndTerm;
 import jakarta.mail.search.FromStringTerm;
 import jakarta.mail.search.SearchTerm;
 import jakarta.mail.search.SubjectTerm;
-import jakarta.mail.BodyPart;
 
 
 /*

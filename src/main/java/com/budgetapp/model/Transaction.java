@@ -1,5 +1,17 @@
 package com.budgetapp.model;
+/* Transaction
+Stores transaction details such as date, merchant, amount, currency, and category.
 
+transactionId	                    int	Attribute
+date	                            Date	Attribute
+merchant	                        String	Attribute
+amount	                            double	Attribute
+currency	                        String	Attribute
+sourceEmailId	                    String	Attribute
+editTransaction()	                void	Method
+deleteTransaction()	                void	Method
+updateCategory(category: Category)	void	Method
+*/
 public class Transaction {
     private int tid;
     private Double amount;

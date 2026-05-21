@@ -1,5 +1,14 @@
 package com.budgetapp.storage;
+/* DatabaseManager
+Handles saving, retrieving, updating, and deleting application data.
 
+databaseUrl	                                String	Attribute
+saveTransaction(transaction: Transaction)	void	Method
+getTransactions(userId: int)	            List<Transaction>	Method
+updateTransaction(transaction: Transaction)	void	Method
+deleteTransaction(transactionId: int)	    void	Method
+saveEmailMessage(email: EmailMessage)	    void	Method
+*/
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -10,7 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.budgetapp.model.Transaction;
-import com.budgetapp.parser.parser;
+import com.budgetapp.model.User;
+// import com.budgetapp.parser.parser;
 
 /**
  * Data that needs to be stored in SQLite
@@ -72,8 +82,18 @@ public class storage {
         return instance;
     }
 
+    /**
+     * Create tables if they don't exist
+     */
     public void creatDBTables(){
         // Create tables if they don't exist
+        String createTableUsers = "create table if not exists Users (" +
+            "uid integer primary key autoincrement, " +
+            "name text not null, " +
+            "email text unique not null, " +    // email is the unique login identifier
+            "password_hash text not null, " +   // SHA-256 hex string, not in text
+            "linked_email_address text" +        // Gmail/Outlook address connected to this account
+            ");";
         String createTableMessages = "create table if not exists Messages (" +
             "mid integer primary key autoincrement, " +
             "message_id text unique, " + // Unique identifier for email
@@ -93,9 +113,9 @@ public class storage {
             ");";
 
         try (var statement = this.conn.createStatement()) {
-            // Execute, create table statements 
             // createStatement(): Creates a basic Statement object for sending SQL commands.
-            statement.execute(createTableMessages);   // Create Messages before Transactions
+            statement.execute(createTableUsers);          // Users first (no dependencies)
+            statement.execute(createTableMessages);       // Messages before Transactions
             statement.execute(createTableTransactions);
 
         } catch (Exception e) {
@@ -105,7 +125,13 @@ public class storage {
     
     /**
      * Messages: mid, message_id, date_received, subject, sender, body
-     * return the generated mid as an int (or -1 on failure)
+     * 
+     * @param messageId 
+     * @param dataReceived
+     * @param subject
+     * @param sender
+     * @param body  
+     * @return mid of the newly inserted message, or -1 on failure
      * */
     public int insertMessage(String messageId, String dataReceived, String subject, String sender, String body){
         // Insert a new message into the Messages table
@@ -140,7 +166,14 @@ public class storage {
 
     /**
      * Transactions: tid, amount, date, merchant, category, message_id(FK -> messages.message_id)
+     * Insert a new transaction into the Transactions table, linking it to the given messageId (mid).
      * 
+     * @param amount
+     * @param date
+     * @param merchant
+     * @param category  
+     * @param mid       message_id(FK -> messages.message_id)
+     * @return true on success, false on failure
      * */
     public boolean insertTransaction(Double amount, String date, String merchant, String category, int mid){
         // Insert a new transaction into the Transactions table
@@ -170,7 +203,11 @@ public class storage {
     }
 
     /**
-     * 
+     * Checks if a message with the given messageId already exists in the Messages table.
+      * Used to prevent duplicate processing of the same email.
+      *
+      * @param messageId the unique identifier of the email (Message-ID header)
+      * @return true if a duplicate message is found, false otherwise
     */
     public boolean checkDouplicateMessages(String messageId) {
         // Check for duplicate messages based on unique identifiers (Message-ID header)
@@ -195,7 +232,111 @@ public class storage {
         }   
     }
 
-    // For testing purposes, we can print out all transactions in the DB
+
+    // User methods
+
+
+    /**
+     * Inserts a new user into the Users table.
+     * The password must already be hashed before calling this — never pass
+     * a plain-text password here.
+     *
+     * @param name
+     * @param email
+     * @param passwordHash the SHA-256 hex string of the user's password
+     * @return the generated uid on success, or -1 on failure
+     */
+    public int insertUser(String name, String email, String passwordHash) {
+        String sql = "insert into Users (name, email, password_hash) values (?, ?, ?);";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            prepared.setString(1, name);
+            prepared.setString(2, email);
+            prepared.setString(3, passwordHash);
+            prepared.executeUpdate();
+
+            ResultSet rs = prepared.getGeneratedKeys();
+            if (rs.next()) {
+                int uid = rs.getInt(1);
+                System.out.println("User registered: " + email + " (uid=" + uid + ")");
+                return uid;
+            }
+            return -1;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    /**
+     * Looks up a user by email + already-hashed password.
+     * Used by User.login() to validate credentials.
+     *
+     * @param email the email address to look up
+     * @param passwordHash the SHA-256 hex string of
+     * @return a populated User object on match, or null if not found
+     */
+    public User getUserByCredentials(String email, String passwordHash) {
+        String sql = "select uid, name, email, password_hash from Users " +
+                     "where email = ? and password_hash = ?;";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql)) {
+            prepared.setString(1, email);
+            prepared.setString(2, passwordHash);
+            ResultSet rs = prepared.executeQuery();
+
+            if (rs.next()) {
+                return new User(
+                    rs.getInt("uid"),
+                    rs.getString("name"),
+                    rs.getString("email"),
+                    rs.getString("password_hash")
+                );
+            }
+            return null; // No matching user found
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Stores the Gmail/Outlook address for the user.
+     * Called by User.connectEmailAccount().
+     * 
+     * @param userId the uid of the user to link the email to
+     * @param emailAddress the Gmail or Outlook address to connect
+     *
+     * @return true on success, false on failure
+     */
+    public boolean linkEmailAccount(int userId, String emailAddress) {
+        String sql = "update Users set linked_email_address = ? where uid = ?;";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql)) {
+            prepared.setString(1, emailAddress);
+            prepared.setInt(2, userId);
+            int rows = prepared.executeUpdate();
+
+            if (rows == 1) {
+                System.out.println("Linked email account '" + emailAddress +
+                                   "' to userId=" + userId);
+                return true;
+            }
+            System.out.println("linkEmailAccount: no user found with uid=" + userId);
+            return false;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    // Transaction / Message methods
+
+    // For testing purposes, print out all transactions in the DB
     // return a List of transaction objects instead.
     public List<Transaction> getTransactions(){
 

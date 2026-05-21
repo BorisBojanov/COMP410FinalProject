@@ -1,5 +1,6 @@
 package com.budgetapp.parser;
 /**
+ * 
  * The parser needs to do: 
  *  - Extract structured data from raw text (email body)
  *  - Persist the structured data into the database
@@ -9,6 +10,16 @@ package com.budgetapp.parser;
  *  messageId, dateReceived, subject, sender, body
  * 
  * 
+*/
+/* TransactionParser
+Extracts transaction information from email content.
+
+parserId	                    int	Attribute
+regexPattern	                String	Attribute
+parseEmail(email: EmailMessage)	Transaction	Method
+extractDate(body: String)	    Date	Method
+extractMerchant(body: String)	String	Method
+extractAmount(body: String)	    double	Method
 */
 
 import com.budgetapp.storage.storage;
