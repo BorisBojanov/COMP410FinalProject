@@ -1,10 +1,10 @@
 package com.budgetapp.model;
 
-import com.budgetapp.storage.storage;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+
+import com.budgetapp.storage.storage;
 
 /* User
 Represents the person using the budgeting app.
@@ -105,9 +105,15 @@ public class User {
 
     /**
      * Logs the user out by clearing all instance fields.
+     * TODO: doesn't guard against calling it when already logged out
+     * 
      */
     public void logout() {
         System.out.println("User " + this.name + " has logged out.");
+        if (this.name == null) {
+            System.out.println("Warning: logout called when user was already logged out.");
+            return;
+        }
         this.userId       = 0;
         this.name         = null;
         this.email        = null;
@@ -134,7 +140,7 @@ public class User {
 
     /**
      * Placeholder for launching the dashboard view.
-     * Will be wired to the Dashboard class once that is implemented.
+     * Use with the Dashboard class once that is implemented.
      */
     public void viewDashboard() {
         System.out.println("Opening dashboard for user: " + this.name);

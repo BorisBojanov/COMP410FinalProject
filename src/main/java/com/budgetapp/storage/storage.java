@@ -91,7 +91,7 @@ public class storage {
             "uid integer primary key autoincrement, " +
             "name text not null, " +
             "email text unique not null, " +    // email is the unique login identifier
-            "password_hash text not null, " +   // SHA-256 hex string, not in text
+            "password_hash text not null, " +   // SHA-256 hex string, never store plain-text passwords
             "linked_email_address text" +        // Gmail/Outlook address connected to this account
             ");";
         String createTableMessages = "create table if not exists Messages (" +
