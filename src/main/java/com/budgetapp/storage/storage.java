@@ -1,14 +1,5 @@
 package com.budgetapp.storage;
-/* DatabaseManager
-Handles saving, retrieving, updating, and deleting application data.
 
-databaseUrl	                                String	Attribute
-saveTransaction(transaction: Transaction)	void	Method
-getTransactions(userId: int)	            List<Transaction>	Method
-updateTransaction(transaction: Transaction)	void	Method
-deleteTransaction(transactionId: int)	    void	Method
-saveEmailMessage(email: EmailMessage)	    void	Method
-*/
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -20,7 +11,21 @@ import java.util.List;
 
 import com.budgetapp.model.Transaction;
 import com.budgetapp.model.User;
+
+
 // import com.budgetapp.parser.parser;
+
+/* DatabaseManager
+Handles saving, retrieving, updating, and deleting application data.
+
+databaseUrl	                                String	Attribute
+
+saveTransaction(transaction: Transaction)	void	Method
+getTransactions(userId: int)	            List<Transaction>	Method
+updateTransaction(transaction: Transaction)	void	Method
+deleteTransaction(transactionId: int)	    void	Method
+saveEmailMessage(email: EmailMessage)	    void	Method
+*/
 
 /**
  * Data that needs to be stored in SQLite
@@ -75,6 +80,9 @@ public class storage {
         }
     }
 
+    /* getInstance
+        Singleton pattern implementation to ensure only one instance of storage exists.
+     */
     public static storage getInstance() {
         if (instance == null) {
             instance = new storage();
@@ -82,7 +90,7 @@ public class storage {
         return instance;
     }
 
-    /**
+    /** creatDBTables
      * Create tables if they don't exist
      */
     public void creatDBTables(){
@@ -111,19 +119,31 @@ public class storage {
             "message_id integer, " + // Foreign key to Messages
             "foreign key (message_id) references Messages(mid)" +
             ");";
+        String createTableCategories = "create table if not exists Categories (" +
+            "category_Id integer primary key autoincrement, " +
+            "name text, " +
+            "rule_Keyword text " +
+            ");";
+        String createTableBudgets = "create table if not exists Budgets (" +
+            "budget_Id integer primary key autoincrement, " +
+            "monthly_Limit double, " +
+            "amount_Spent double " +
+            ");";
 
         try (var statement = this.conn.createStatement()) {
             // createStatement(): Creates a basic Statement object for sending SQL commands.
             statement.execute(createTableUsers);          // Users first (no dependencies)
             statement.execute(createTableMessages);       // Messages before Transactions
-            statement.execute(createTableTransactions);
+            statement.execute(createTableTransactions);   // Transactions depends on Messages
+            statement.execute(createTableCategories);     // Categories depends on Transactions
+            statement.execute(createTableBudgets);        // Budgets depends on Transactions
 
         } catch (Exception e) {
             e.printStackTrace();
         }
     }
     
-    /**
+    /** insertMessages
      * insertMessages: mid, message_id, date_received, subject, sender, body
      * 
      * @param messageId 
@@ -164,45 +184,7 @@ public class storage {
         }
     }
 
-    /**
-     * Transactions: tid, amount, date, merchant, category, message_id(FK -> messages.message_id)
-     * Insert a new transaction into the Transactions table, linking it to the given messageId (mid).
-     * 
-     * @param amount
-     * @param date
-     * @param merchant
-     * @param category  
-     * @param mid       message_id(FK -> messages.message_id)
-     * @return true on success, false on failure
-     * */
-    public boolean insertTransaction(Double amount, String date, String merchant, String category, int mid){
-        // Insert a new transaction into the Transactions table
-        String sql = "insert into Transactions (amount, date, merchant, category, message_id) values (?, ?, ?, ?, ?);";
-
-        try (PreparedStatement prepared = this.conn.prepareStatement(sql)){
-            prepared.setDouble(1, amount);
-            prepared.setString(2, date);
-            prepared.setString(3, merchant);
-            prepared.setString(4, category);
-            prepared.setInt(5, mid);
-
-            int transactionCode = prepared.executeUpdate();
-            
-            if (transactionCode == 1) {
-                System.out.println("Transaction inserted successfully!");
-                return true;
-            } else {
-                System.out.println("Failed to insert transaction.");
-                return false;
-            }
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
-        }
-    }
-
-    /**
+    /** checkDouplicateMessages
      * Checks if a message with the given messageId already exists in the Messages table.
       * Used to prevent duplicate processing of the same email.
       *
@@ -232,11 +214,179 @@ public class storage {
         }   
     }
 
+    /** insertTransaction
+     * Transactions: tid, amount, date, merchant, category, message_id(FK -> messages.message_id)
+     * Insert a new transaction into the Transactions table, linking it to the given messageId (mid).
+     * 
+     * @param amount
+     * @param date
+     * @param merchant
+     * @param category  
+     * @param mid       message_id(FK -> messages.message_id)
+     * @return true on success, false on failure
+     * */
+    public boolean insertTransaction(Double amount, String date, String merchant, String category, int mid){
+        // Insert a new transaction into the Transactions table
+        String sql = "insert into Transactions (amount, date, merchant, category, message_id) values (?, ?, ?, ?, ?);";
 
-    // User methods
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+            prepared.setDouble(1, amount);
+            prepared.setString(2, date);
+            prepared.setString(3, merchant);
+            prepared.setString(4, category);
+            prepared.setInt(5, mid);
+
+            int transactionCode = prepared.executeUpdate();
+            
+            if (transactionCode == 1) {
+                System.out.println("Transaction inserted successfully!");
+                return true;
+            } else {
+                System.out.println("Failed to insert transaction.");
+                return false;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 
-    /**
+
+    // Category methods
+    public int insertCategory(String name, String ruleKeyword){
+        String sql = "insert into Categories (name, rule_Keyword) values (?, ?);";
+        
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+            prepared.setString(1, name);
+            prepared.setString(2, ruleKeyword);
+            prepared.executeUpdate();
+            
+            ResultSet rs = prepared.getGeneratedKeys(); // Retrieves any auto-generated keys created by the execution of the SQL statement. In this case, it would be the categoryId of the newly inserted category.
+            if (rs.next()) {
+                int categoryId = rs.getInt(1); // Standard way to get the first generated column
+                System.out.println("Category inserted successfully!");
+                return categoryId;
+            } else {
+                System.out.println("Failed to insert category.");
+                return -1;
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    /** updateCategoryRule
+     * Updates the ruleKeyword for a given categoryId in the Categories table.
+     *
+     * @param categoryId the ID of the category to update
+     * @param newRuleKeyword the new rule keyword to set
+     * @return the categoryId on success, or -1 on failure
+     */
+    public int updateCategoryRule(int categoryId, String newRuleKeyword){
+    String sql = "update Categories set rule_Keyword = ? where category_Id = ?;";
+
+    try (PreparedStatement prepared = this.conn.prepareStatement(sql)){
+        prepared.setString(1, newRuleKeyword);
+        prepared.setInt(2, categoryId);
+        int row = prepared.executeUpdate(); // Should return 1 if a row was updated, we expect only one row to match the categoryId
+
+        if (row == 1) {
+            System.out.println("Updated rule for category_Id=" + categoryId + " to keyword: " + newRuleKeyword);
+            return categoryId;
+        }
+        System.out.println("updateCategoryRule: no category found with category_Id=" + categoryId);
+        return -1;
+
+    } catch (Exception e){
+        e.printStackTrace();
+        return -1;
+    }
+
+    } 
+
+    /** updateCategoryName
+     * Updates the name for a given categoryId in the Categories table.
+     *
+     * @param categoryId the ID of the category to update
+     * @param newName the new name to set
+     * @return true on success, false on failure
+    */
+    public boolean updateCategoryName(int categoryId, String newName){
+        String sql = "update Categories set name = ? where category_Id = ?;";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql)){
+            prepared.setString(1, newName);
+            prepared.setInt(2, categoryId);
+            int row = prepared.executeUpdate(); // Should return 1 if a row was updated, we expect only one row to match the categoryId
+
+            if (row == 1) {
+                System.out.println("Updated name for category_Id=" + categoryId + " to name: " + newName);
+                return true;
+            }
+            System.out.println("updateCategoryName: no category found with category_Id=" + categoryId);
+            return false;
+
+        } catch (Exception e){
+            e.printStackTrace();
+            return false;
+        }
+
+    }
+
+    // Budget methods
+    
+    public int insertBudget(Double monthlyLimit, Double amountSpent){
+        String sql = "insert into Budgets (monthly_Limit, amount_Spent) values (?, ?);";
+
+        try(PreparedStatement prepared = this.conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)){
+            prepared.setDouble(1, monthlyLimit);
+            prepared.setDouble(2, amountSpent);
+            prepared.executeUpdate();
+            
+            ResultSet rs = prepared.getGeneratedKeys(); // Retrieves any auto-generated keys created by the execution of the SQL statement. In this case, it would be the budgetId of the newly inserted budget.
+            if (rs.next()) {
+                int budgetId = rs.getInt(1); // Standard way to get the first generated
+                System.out.println("Budget inserted successfully!");
+                return budgetId;
+            } else {
+                System.out.println("Failed to insert budget.");
+                return -1;
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    public boolean updateBudget(int budgetId, Double monthlyLimit, Double amountSpent){
+        String sql = "update Budgets set monthly_Limit = ?, amount_Spent = ? where budget_Id = ?;";
+
+        try(PreparedStatement prepared = this.conn.prepareStatement(sql)){
+            prepared.setDouble(1, monthlyLimit);
+            prepared.setDouble(2, amountSpent);
+            prepared.setInt(3, budgetId);
+            int row = prepared.executeUpdate(); 
+
+            if (row == 1) {
+                System.out.println("Updated budget for budget_Id=" + budgetId + " to monthly_Limit: " + monthlyLimit + ", amount_Spent: " + amountSpent);
+                return true;
+            }
+            System.out.println("updateBudget: no budget found with budget_Id=" + budgetId);
+            return false;
+
+        } catch(Exception e){
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+
+    // User methods --------
+    /** insertUser
      * Inserts a new user into the Users table.
      * The password must already be hashed before calling this — never pass
      * a plain-text password here.
@@ -269,7 +419,7 @@ public class storage {
         }
     }
 
-    /**
+    /** getUserByCredentials
      * Looks up a user by email + already-hashed password.
      * Used by User.login() to validate credentials.
      *
@@ -302,7 +452,7 @@ public class storage {
         }
     }
 
-    /**
+    /** linkEmailAccount
      * Stores the Gmail/Outlook address for the user.
      * Called by User.connectEmailAccount().
      * 

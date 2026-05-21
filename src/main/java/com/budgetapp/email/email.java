@@ -1,4 +1,10 @@
 package com.budgetapp.email;
+/*
+TODO: linkEmailAccount() stores the email address directly on the Users row. That works for now, 
+    but when EmailAccount class (which has provider, accessToken, isConnected) is implamented
+    Need A separate EmailAccounts table with a FK to uid. The current approach isn't wrong — just flag it as a known simplification in your report.
+    
+*/
 /* EmailAccount
 Stores connected Gmail or Outlook account information.
 
