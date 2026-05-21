@@ -105,7 +105,6 @@ public class User {
 
     /**
      * Logs the user out by clearing all instance fields.
-     * TODO: doesn't guard against calling it when already logged out
      * 
      */
     public void logout() {
