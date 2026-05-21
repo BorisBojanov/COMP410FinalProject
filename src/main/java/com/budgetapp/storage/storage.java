@@ -124,7 +124,7 @@ public class storage {
     }
     
     /**
-     * Messages: mid, message_id, date_received, subject, sender, body
+     * insertMessages: mid, message_id, date_received, subject, sender, body
      * 
      * @param messageId 
      * @param dataReceived
