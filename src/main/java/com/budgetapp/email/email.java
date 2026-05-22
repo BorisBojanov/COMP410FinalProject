@@ -84,7 +84,7 @@ public class email {
     // Class variables
     Properties properties = new Properties();
     String protocol = "imaps"; // Default protocol for secure IMAP
-    String email = "boris.bojanov@gmail.com";
+    String email = "";
     String appPassword = "";
     Store store;
     Folder folder;
@@ -151,7 +151,7 @@ public class email {
     // Implementation to connect to the mail server using the provided properties and credentials
         try{
             Store store = session.getStore("imaps");
-            store.connect("imap.gmail.com", email, appPassword);
+            store.connect(session.getProperty("mail.imaps.host"), email, appPassword);
             return store;
         } catch (Exception e) {
             e.printStackTrace();
@@ -253,8 +253,7 @@ public class email {
                     }
                 }
             } 
-            // fallback if no text/plain part is found or content is of an unexpected type
-            return "no text/plain part is found";
+            return null; // no text/plain part found
         } catch (Exception e) {
             e.printStackTrace();
             return null;

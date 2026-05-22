@@ -71,12 +71,6 @@ public class Budget {
     }
 
     
-    public void setLimit(Double limit) {
-        this.monthlyLimit = limit;
-        updateInDB();
-        System.out.println("Monthly limit set to: " + limit);
-    }
-
     public void updateSpending(Double amount) {
         this.amountSpent += amount;
         updateInDB();

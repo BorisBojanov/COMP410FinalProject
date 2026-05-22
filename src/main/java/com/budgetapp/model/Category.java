@@ -32,27 +32,20 @@ public class Category {
         this.ruleKeyword = ruleKeyword;
     }
 
-    private void updateInDB(){
-        storage dataBase = storage.getInstance();
-        dataBase.updateCategoryRule(this.categoryId, this.ruleKeyword);
-        dataBase.updateCategoryName(this.categoryId, this.name);
-    }
-
     // Getters and setters
     public int getCategoryId() {
         return this.categoryId;
     }
     public void setCategoryId(int id){
         this.categoryId = id;
-        // updateInDB();
     }
 
-    public String getCatgoryName(){
+    public String getCategoryName(){
         return this.name;
     }
-    public void setCatgoryName(String name){
+    public void setCategoryName(String name){
         this.name = name;
-        updateInDB();
+        storage.getInstance().updateCategoryName(this.categoryId, this.name);
     }
 
     public String getRuleKeyword(){
@@ -60,7 +53,7 @@ public class Category {
     }
     public void setRuleKeyword(String word){
         this.ruleKeyword = word;
-        updateInDB();
+        storage.getInstance().updateCategoryRule(this.categoryId, this.ruleKeyword);
     }
 
 
@@ -70,10 +63,8 @@ public class Category {
     }
 
     public void updateRule(String keyword) {
-        this.ruleKeyword = keyword;
-        updateInDB();
+        setRuleKeyword(keyword);
         System.out.println("Updated rule for category " + this.name + " to keyword: " + keyword);
-        
     }
 
 }

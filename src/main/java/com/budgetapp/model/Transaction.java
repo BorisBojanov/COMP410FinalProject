@@ -122,7 +122,7 @@ public class Transaction {
     }
 
     public void updateCategory(Category category) {
-        this.category = category.getCatgoryName();
+        this.category = category.getCategoryName();
         System.out.println("Updated category for transaction " + this.tid + " to " + this.category);
     }
 }

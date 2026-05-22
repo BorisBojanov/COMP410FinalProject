@@ -3,6 +3,7 @@ package com.budgetapp.model;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Scanner;
 
 import com.budgetapp.storage.storage;
 
@@ -76,7 +77,7 @@ public class User {
     // Methods (from design class diagram)
     // -----------------------------------------------------------------------
 
-    /**
+    /** login
      * Validates the provided credentials against the database.
      * On success, populates all fields of this User instance.
      * On failure, leaves this instance unchanged and returns false.
@@ -85,34 +86,23 @@ public class User {
      * @param password plain-text password (will be hashed before comparison)
      * @return true if credentials match a stored user, false otherwise
      */
-    public boolean login(String email, String password) {
+    public static User login(String email, String password) {
         String hashedInput = hashPassword(password);
         storage db = storage.getInstance();
-        User found = db.getUserByCredentials(email, hashedInput);
-
-        if (found != null) {
-            this.userId       = found.getUserId();
-            this.name         = found.getName();
-            this.email        = found.getEmail();
-            this.passwordHash = found.getPasswordHash();
-            System.out.println("Login successful for: " + this.name);
-            return true;
-        }
-
-        System.out.println("Login failed: invalid email or password.");
-        return false;
+        return db.getUserByCredentials(email, hashedInput); // null on failure
     }
 
-    /**
+
+    /** lopout
      * Logs the user out by clearing all instance fields.
      * 
      */
     public void logout() {
-        System.out.println("User " + this.name + " has logged out.");
         if (this.name == null) {
             System.out.println("Warning: logout called when user was already logged out.");
             return;
         }
+        System.out.println("User " + this.name + " has logged out.");
         this.userId       = 0;
         this.name         = null;
         this.email        = null;
@@ -146,10 +136,7 @@ public class User {
         // TODO: instantiate Dashboard and call displaySummary()
     }
 
-    // -----------------------------------------------------------------------
-    // Getters and Setters
-    // -----------------------------------------------------------------------
-
+    // Getters and Setters -------
     public int getUserId() {
         return userId;
     }

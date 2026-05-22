@@ -65,7 +65,7 @@ public class storage {
         // storage db = storage.getInstance();
         // db.connect("jdbc:sqlite:budget.db");
         connect(connectionUrl);
-        creatDBTables();
+        createDbTables();
     }
 
     /** connect
@@ -101,10 +101,10 @@ public class storage {
         return instance;
     }
 
-    /** creatDBTables
+    /** createDbTables
      * Create tables if they don't exist
      */
-    public void creatDBTables(){
+    public void createDbTables(){
         // Create tables if they don't exist
         String createTableUsers = "create table if not exists Users (" +
             "uid integer primary key autoincrement, " +
@@ -146,8 +146,8 @@ public class storage {
             statement.execute(createTableUsers);          // Users first (no dependencies)
             statement.execute(createTableMessages);       // Messages before Transactions
             statement.execute(createTableTransactions);   // Transactions depends on Messages
-            statement.execute(createTableCategories);     // Categories depends on Transactions
-            statement.execute(createTableBudgets);        // Budgets depends on Transactions
+            statement.execute(createTableCategories);
+            statement.execute(createTableBudgets);
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -180,15 +180,12 @@ public class storage {
             prepared.setString(5, body);
 
             
-            // executeUpdate(): Sends the SQL to the database
-            prepared.executeUpdate();        
-
-            ResultSet rs = prepared.getGeneratedKeys(); // Retrieves any auto-generated keys created by the execution of the SQL statement. In this case, it would be the mid of the newly inserted message.
-            if (rs.next()) {
-                int mid = rs.getInt(1); // Standard way to get the first generated column
-                return mid;
-            } else {
-                return -1; // Return -1 if insertion failed or no ID generated
+            prepared.executeUpdate();
+            try (ResultSet rs = prepared.getGeneratedKeys()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+                return -1;
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -196,34 +193,17 @@ public class storage {
         }
     }
 
-    /** checkDouplicateMessages
-     * Checks if a message with the given messageId already exists in the Messages table.
-      * Used to prevent duplicate processing of the same email.
-      *
-      * @param messageId the unique identifier of the email (Message-ID header)
-      * @return true if a duplicate message is found, false otherwise
-    */
-    public boolean checkDouplicateMessages(String messageId) {
-        // Check for duplicate messages based on unique identifiers (Message-ID header)
+    public boolean checkDuplicateMessage(String messageId) {
         String sql = "SELECT mid FROM Messages WHERE message_id = ?;";
-        
-         try(var statement = this.conn.prepareStatement(sql);){
-            
+        try (var statement = this.conn.prepareStatement(sql)) {
             statement.setString(1, messageId);
-            ResultSet rs =statement.executeQuery();
-            if (rs.next()) {
-                // If we get a result, it means the message_id already exists in the DB
-                System.out.println("Duplicate message found with message_id: " + messageId);
-                return true;
-            } else {
-                System.out.println("No duplicate message found for message_id: " + messageId);
-                return false;
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next();
             }
-            
         } catch (Exception e) {
             e.printStackTrace();
             return false;
-        }   
+        }
     }
 
     // Transaction methods --------
@@ -272,34 +252,11 @@ public class storage {
      * @return
     */
     public int updateTransaction(Transaction transaction){
-        String sql = "update Transactions set amount = ?, date = ?, merchant = ?, category = ? where tid = ?;";
-        
-        int tid = transaction.getTid();
-        double amount = transaction.getAmount();
-        String date = transaction.getDate();
-        String merchant = transaction.getMerchant();
-        String category = transaction.getCategory();
-        
-
-        try(PreparedStatement prepared = this.conn.prepareStatement(sql)){
-            prepared.setDouble(1, amount);
-            prepared.setString(2, date);
-            prepared.setString(3, merchant);
-            prepared.setString(4, category);
-            prepared.setInt(5, tid);
-
-            int row = prepared.executeUpdate(); // Should return 1 if a row was updated, we expect only one row to match
-            if (row == 1){
-                System.out.print("Transaction updated: tid=" + tid);
-                return tid;
-            } else {
-                System.out.println("updateTransaction: no row found with tid=" + tid);
-                return -1;
-            }
-        } catch (Exception e){
-            e.printStackTrace();
-            return -1;
-        }
+        boolean success = updateTransaction(
+            transaction.getTid(), transaction.getAmount(),
+            transaction.getDate(), transaction.getMerchant(), transaction.getCategory()
+        );
+        return success ? transaction.getTid() : -1;
     }
 
     public boolean updateTransaction(int tid, double amount, String date, String merchant, String category) {
@@ -361,23 +318,10 @@ public class storage {
     */
     public List<Transaction> getTransactions(){
 
-        String sql = "SELECT * FROM Transactions;";
-        try(var statement = this.conn.prepareStatement(sql);){
-            ResultSet rs = statement.executeQuery();
-            
+        String sql = "SELECT tid, amount, date, merchant, category, message_id FROM Transactions;";
+        try (var statement = this.conn.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
             List<Transaction> transactions = new ArrayList<>();
-
-            // while (rs.next()) {
-            //     int tid = rs.getInt("tid");
-            //     double amount = rs.getDouble("amount");
-            //     String date = rs.getString("date");
-            //     String merchant = rs.getString("merchant");
-            //     String category = rs.getString("category");
-            //     int messageId = rs.getInt("message_id");
-
-            //     sb.append(String.format("Transaction ID 'tid': %d, Amount 'amount': %.2f, Date 'date': %s, Merchant 'merchant': %s, Category 'category': %s, Message ID 'message_id'(FK): %d\n",
-            //         tid, amount, date, merchant, category, messageId));
-            // }
             while (rs.next()){
                 int tid = rs.getInt("tid");
                 double amount = rs.getDouble("amount");
@@ -412,17 +356,14 @@ public class storage {
             prepared.setString(1, name);
             prepared.setString(2, ruleKeyword);
             prepared.executeUpdate();
-            
-            ResultSet rs = prepared.getGeneratedKeys(); // Retrieves any auto-generated keys created by the execution of the SQL statement. In this case, it would be the categoryId of the newly inserted category.
-            if (rs.next()) {
-                int categoryId = rs.getInt(1); // Standard way to get the first generated column
-                System.out.println("Category inserted successfully!");
-                return categoryId;
-            } else {
+            try (ResultSet rs = prepared.getGeneratedKeys()) {
+                if (rs.next()) {
+                    System.out.println("Category inserted successfully!");
+                    return rs.getInt(1);
+                }
                 System.out.println("Failed to insert category.");
                 return -1;
             }
-
         } catch (Exception e) {
             e.printStackTrace();
             return -1;
@@ -494,11 +435,9 @@ public class storage {
     */
     public List<Category> getCategories(){
         String sql = "SELECT category_Id, name, rule_Keyword FROM Categories;";
-        try(var statement = this.conn.prepareStatement(sql);){
-            ResultSet rs = statement.executeQuery();
-            
+        try (var statement = this.conn.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
             List<Category> categories = new ArrayList<>();
-
             while (rs.next()){
                 int categoryId = rs.getInt("category_Id");
                 String name = rs.getString("name");
@@ -531,13 +470,11 @@ public class storage {
             prepared.setDouble(1, monthlyLimit);
             prepared.setDouble(2, amountSpent);
             prepared.executeUpdate();
-            
-            ResultSet rs = prepared.getGeneratedKeys(); // Retrieves any auto-generated keys created by the execution of the SQL statement. In this case, it would be the budgetId of the newly inserted budget.
-            if (rs.next()) {
-                int budgetId = rs.getInt(1); // Standard way to get the first generated
-                System.out.println("Budget inserted successfully!");
-                return budgetId;
-            } else {
+            try (ResultSet rs = prepared.getGeneratedKeys()) {
+                if (rs.next()) {
+                    System.out.println("Budget inserted successfully!");
+                    return rs.getInt(1);
+                }
                 System.out.println("Failed to insert budget.");
                 return -1;
             }
@@ -586,9 +523,8 @@ public class storage {
     */
     public List<Budget> getBudgets(){
         String sql = "SELECT budget_Id, monthly_Limit, amount_Spent FROM Budgets;";
-        try(var statement = this.conn.prepareStatement(sql);){
-            ResultSet rs = statement.executeQuery();
-            
+        try (var statement = this.conn.prepareStatement(sql);
+             ResultSet rs = statement.executeQuery()) {
             List<Budget> budgets = new ArrayList<>();
 
             while (rs.next()){
@@ -627,13 +563,14 @@ public class storage {
             prepared.setString(3, passwordHash);
             prepared.executeUpdate();
 
-            ResultSet rs = prepared.getGeneratedKeys();
-            if (rs.next()) {
-                int uid = rs.getInt(1);
-                System.out.println("User registered: " + email + " (uid=" + uid + ")");
-                return uid;
+            try (ResultSet rs = prepared.getGeneratedKeys()) {
+                if (rs.next()) {
+                    int uid = rs.getInt(1);
+                    System.out.println("User registered: " + email + " (uid=" + uid + ")");
+                    return uid;
+                }
+                return -1;
             }
-            return -1;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -656,17 +593,17 @@ public class storage {
         try (PreparedStatement prepared = this.conn.prepareStatement(sql)) {
             prepared.setString(1, email);
             prepared.setString(2, passwordHash);
-            ResultSet rs = prepared.executeQuery();
-
-            if (rs.next()) {
-                return new User(
-                    rs.getInt("uid"),
-                    rs.getString("name"),
-                    rs.getString("email"),
-                    rs.getString("password_hash")
-                );
+            try (ResultSet rs = prepared.executeQuery()) {
+                if (rs.next()) {
+                    return new User(
+                        rs.getInt("uid"),
+                        rs.getString("name"),
+                        rs.getString("email"),
+                        rs.getString("password_hash")
+                    );
+                }
+                return null;
             }
-            return null; // No matching user found
 
         } catch (Exception e) {
             e.printStackTrace();

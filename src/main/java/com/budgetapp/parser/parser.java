@@ -23,18 +23,12 @@ extractAmount(body: String)	    double	Method
 extractCurrency()               String	Method (option)
 detectSubscription()          boolean	Method (option)
 */
-// import java.sql.Statement;
-// import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-
 import com.budgetapp.storage.storage;
 import com.budgetapp.model.Category;
-// import com.budgetapp.model.Transaction;
-// import com.budgetapp.model.User;
-// import com.budgetapp.model.Budget;
 
 
 public class parser {
@@ -42,6 +36,11 @@ public class parser {
     private Pattern amount = Pattern.compile("\\$(\\d+\\.\\d{2})");
     private Pattern date = Pattern.compile("(\\d{4}-\\d{2}-\\d{2})");
     private Pattern merchant = Pattern.compile("at (.+?) on");
+    private final List<Category> categories;
+
+    public parser() {
+        this.categories = storage.getInstance().getCategories();
+    }
 
     // A simple inner class to carry the extracted fields between the two methods
     public static class ParsedTransaction {
@@ -103,28 +102,17 @@ public class parser {
         parsedTransaction.merchant = merchantStr;
         parsedTransaction.category = "Uncategorized"; // default before loop
 
-        /**
-         * The category will be set by Transaction.setCategory() when we call assignTransaction() in the Category class. For now, we can set it to "Uncategorized" or leave it null.
-         * 
-         * if the email body contains a keyword that matches a category's ruleKeyword, we can set the category to that category's name. 
-         * Need list of categories and their ruleKeywords,
-         * Call getCategories() from storage to get that list, 
-         *  then loop through it and check if the email body contains any of the ruleKeywords. 
-         * If it does, set the category to that category's name.
-         * */
-        List<Category> categories = storage.getInstance().getCategories();
-
-        for (Category category : categories) {
+        for (Category category : this.categories) {
             String keyword = category.getRuleKeyword().toLowerCase();
 
             if (body.toLowerCase().contains( keyword )) {
-                parsedTransaction.category = category.getCatgoryName();
-                // System.out.println("Matched category: " + category.getCatgoryName() + " for keyword: " + category.getRuleKeyword());
+                parsedTransaction.category = category.getCategoryName();
+                // System.out.println("Matched category: " + category.getCategoryName() + " for keyword: " + category.getRuleKeyword());
                 break; // Stop checking after the first match
 
             } else if (merchantStr.toLowerCase().contains( keyword)){ //also check merchantStr in addition to body
-                parsedTransaction.category = category.getCatgoryName();
-                // System.out.println("Matched category: " + category.getCatgoryName() + " for keyword: " + category.getRuleKeyword());
+                parsedTransaction.category = category.getCategoryName();
+                // System.out.println("Matched category: " + category.getCategoryName() + " for keyword: " + category.getRuleKeyword());
                 break; // Stop checking after the first match   
             }
         }
@@ -142,11 +130,8 @@ public class parser {
      * @return
     */
     public boolean processEmail(String messageId, String dateReceived,String subject, String sender, String body) {
-        // Call checkDouplicateMessages() on the storage instance first
-        //       if it's a duplicate, return false immediately
-
         storage db = storage.getInstance();
-        if (db.checkDouplicateMessages(messageId)) {
+        if (db.checkDuplicateMessage(messageId)) {
             System.out.println("Duplicate message detected. Skipping processing.");
             return false; // Skip processing if it's a duplicate
         }
