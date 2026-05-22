@@ -332,24 +332,69 @@ public class storage {
      * @param tid
      * @return
      */
-public boolean deleteTransaction(int tid){
-    String sql = "delete from Transactions where tid= ?;";
-    try(PreparedStatement prepared = this.conn.prepareStatement(sql)){
-        prepared.setInt(1, tid);
-        int rows = prepared.executeUpdate();
+    public boolean deleteTransaction(int tid){
+        String sql = "delete from Transactions where tid= ?;";
+        try(PreparedStatement prepared = this.conn.prepareStatement(sql)){
+            prepared.setInt(1, tid);
+            int rows = prepared.executeUpdate();
 
-        if (rows == 1){
-            System.out.println("Transaction deleted: tid=" + tid);
-            return true;
-        } else {
-            System.out.println("deleteTransaction: no row found with tid=" + tid);
+            if (rows == 1){
+                System.out.println("Transaction deleted: tid=" + tid);
+                return true;
+            } else {
+                System.out.println("deleteTransaction: no row found with tid=" + tid);
+                return false;
+            }
+        } catch(Exception e){
+            e.printStackTrace();
             return false;
         }
-    } catch(Exception e){
-        e.printStackTrace();
-        return false;
     }
-}
+
+    /**
+     * getTransactions
+     * Retrieves all transactions from the Transactions table.
+     * 
+     * For testing purposes, print out all transactions in the DB
+     * return a List of transaction objects instead.
+     * @return
+    */
+    public List<Transaction> getTransactions(){
+
+        String sql = "SELECT * FROM Transactions;";
+        try(var statement = this.conn.prepareStatement(sql);){
+            ResultSet rs = statement.executeQuery();
+            
+            List<Transaction> transactions = new ArrayList<>();
+
+            // while (rs.next()) {
+            //     int tid = rs.getInt("tid");
+            //     double amount = rs.getDouble("amount");
+            //     String date = rs.getString("date");
+            //     String merchant = rs.getString("merchant");
+            //     String category = rs.getString("category");
+            //     int messageId = rs.getInt("message_id");
+
+            //     sb.append(String.format("Transaction ID 'tid': %d, Amount 'amount': %.2f, Date 'date': %s, Merchant 'merchant': %s, Category 'category': %s, Message ID 'message_id'(FK): %d\n",
+            //         tid, amount, date, merchant, category, messageId));
+            // }
+            while (rs.next()){
+                int tid = rs.getInt("tid");
+                double amount = rs.getDouble("amount");
+                String date = rs.getString("date");
+                String merchant = rs.getString("merchant");
+                String category = rs.getString("category");
+                int messageId = rs.getInt("message_id");
+                transactions.add(new Transaction(tid, amount, date, merchant, category, messageId));
+            }
+
+        return transactions;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<Transaction>();
+        }
+    }
 
 
     // Category methods -----
@@ -661,45 +706,6 @@ public boolean deleteTransaction(int tid){
     }
 
 
-    // Transaction / Message methods
 
-    // For testing purposes, print out all transactions in the DB
-    // return a List of transaction objects instead.
-    public List<Transaction> getTransactions(){
-
-        String sql = "SELECT * FROM Transactions;";
-        try(var statement = this.conn.prepareStatement(sql);){
-            ResultSet rs = statement.executeQuery();
-            
-            List<Transaction> transactions = new ArrayList<>();
-
-            // while (rs.next()) {
-            //     int tid = rs.getInt("tid");
-            //     double amount = rs.getDouble("amount");
-            //     String date = rs.getString("date");
-            //     String merchant = rs.getString("merchant");
-            //     String category = rs.getString("category");
-            //     int messageId = rs.getInt("message_id");
-
-            //     sb.append(String.format("Transaction ID 'tid': %d, Amount 'amount': %.2f, Date 'date': %s, Merchant 'merchant': %s, Category 'category': %s, Message ID 'message_id'(FK): %d\n",
-            //         tid, amount, date, merchant, category, messageId));
-            // }
-            while (rs.next()){
-                int tid = rs.getInt("tid");
-                double amount = rs.getDouble("amount");
-                String date = rs.getString("date");
-                String merchant = rs.getString("merchant");
-                String category = rs.getString("category");
-                int messageId = rs.getInt("message_id");
-                transactions.add(new Transaction(tid, amount, date, merchant, category, messageId));
-            }
-
-        return transactions;
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            return new ArrayList<Transaction>();
-        }
-    }
 
 }
