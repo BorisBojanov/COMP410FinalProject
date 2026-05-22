@@ -1,4 +1,7 @@
 package com.budgetapp.model;
+
+import com.budgetapp.storage.storage;
+
 /* Transaction
 Stores transaction details such as date, merchant, amount, currency, and category.
 
@@ -11,6 +14,13 @@ sourceEmailId	                    String	Attribute
 editTransaction()	                void	Method
 deleteTransaction()	                void	Method
 updateCategory(category: Category)	void	Method
+
+Model-View-Controller (MVC) Flow for editTransaction():
+Caller
+  → transaction.editTransaction()       // model method — owns the object's fields
+      → storage.getInstance()           // get the shared DB connection
+          → updateTransaction(tid, ...) // SQL UPDATE via PreparedStatement
+
 */
 public class Transaction {
     private int tid;
@@ -92,11 +102,23 @@ public class Transaction {
 
 
     public void editTransaction() {
-        System.out.println("Editing transaction " + this.tid);
+        storage db = storage.getInstance();
+        boolean success = db.updateTransaction(this.tid, this.amount, this.date, this.merchant, this.category);
+        if (success) {
+            System.out.println("Transaction " + this.tid + " updated successfully.");
+        } else {
+            System.out.println("Failed to update tid= " + this.tid);
+        }
     }
 
     public void deleteTransaction() {
-        System.out.println("Deleting transaction " + this.tid);
+        storage db = storage.getInstance();
+        boolean success = db.deleteTransaction(this.tid);
+        if (success){
+            System.out.println("Deleting transaction " + this.tid);
+        } else {
+            System.out.println("Failed to delete tid= " + this.tid);
+        }
     }
 
     public void updateCategory(Category category) {

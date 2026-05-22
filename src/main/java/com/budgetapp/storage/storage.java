@@ -9,10 +9,10 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.budgetapp.model.Budget;
+import com.budgetapp.model.Category;
 import com.budgetapp.model.Transaction;
 import com.budgetapp.model.User;
-import com.budgetapp.model.Category;
-import com.budgetapp.model.Budget;
 
 
 // import com.budgetapp.parser.parser;
@@ -58,6 +58,7 @@ public class storage {
     private static storage instance;
     private String connectionUrl = "jdbc:sqlite:budget.db"; // Local file url
     
+    // Database -----
     // Private constructor to prevent direct instantiation
     private storage(){
 
@@ -122,7 +123,7 @@ public class storage {
             ");";
         String createTableTransactions = "create table if not exists Transactions (" +
             "tid integer primary key autoincrement, " +
-            "amount real, " +
+            "amount double, " +
             "date text, " +
             "merchant text, " +
             "category text, " +
@@ -153,6 +154,7 @@ public class storage {
         }
     }
     
+    // Mesage Methods -------
     /** insertMessages
      * insertMessages: mid, message_id, date_received, subject, sender, body
      * 
@@ -224,6 +226,7 @@ public class storage {
         }   
     }
 
+    // Transaction methods --------
     /** insertTransaction
      * Transactions: tid, amount, date, merchant, category, message_id(FK -> messages.message_id)
      * Insert a new transaction into the Transactions table, linking it to the given messageId (mid).
@@ -262,9 +265,94 @@ public class storage {
         }
     }
 
+    /** updateTransaction(Transaction transaction)
+     * 
+     * 
+     * @param transaction
+     * @return
+    */
+    public int updateTransaction(Transaction transaction){
+        String sql = "update Transactions set amount = ?, date = ?, merchant = ?, category = ? where tid = ?;";
+        
+        int tid = transaction.getTid();
+        double amount = transaction.getAmount();
+        String date = transaction.getDate();
+        String merchant = transaction.getMerchant();
+        String category = transaction.getCategory();
+        
+
+        try(PreparedStatement prepared = this.conn.prepareStatement(sql)){
+            prepared.setDouble(1, amount);
+            prepared.setString(2, date);
+            prepared.setString(3, merchant);
+            prepared.setString(4, category);
+            prepared.setInt(5, tid);
+
+            int row = prepared.executeUpdate(); // Should return 1 if a row was updated, we expect only one row to match
+            if (row == 1){
+                System.out.print("Transaction updated: tid=" + tid);
+                return tid;
+            } else {
+                System.out.println("updateTransaction: no row found with tid=" + tid);
+                return -1;
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    public boolean updateTransaction(int tid, double amount, String date, String merchant, String category) {
+        String sql = "update Transactions set amount = ?, date = ?, merchant = ?, category = ? where tid = ?;";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql)) {
+            prepared.setDouble(1, amount);
+            prepared.setString(2, date);
+            prepared.setString(3, merchant);
+            prepared.setString(4, category);
+            prepared.setInt(5, tid);          // WHERE clause goes last
+            int rows = prepared.executeUpdate();
+
+            if (rows == 1) {
+                System.out.println("Transaction updated: tid=" + tid);
+                return true;
+            }
+            System.out.println("updateTransaction: no row found with tid=" + tid);
+            return false;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /** deleteTransaction
+     * Deletes a transaction from the Transactions table based on the given transaction ID (tid).
+     * 
+     * @param tid
+     * @return
+     */
+public boolean deleteTransaction(int tid){
+    String sql = "delete from Transactions where tid= ?;";
+    try(PreparedStatement prepared = this.conn.prepareStatement(sql)){
+        prepared.setInt(1, tid);
+        int rows = prepared.executeUpdate();
+
+        if (rows == 1){
+            System.out.println("Transaction deleted: tid=" + tid);
+            return true;
+        } else {
+            System.out.println("deleteTransaction: no row found with tid=" + tid);
+            return false;
+        }
+    } catch(Exception e){
+        e.printStackTrace();
+        return false;
+    }
+}
 
 
-    // Category methods
+    // Category methods -----
     /** insertCategory
      * Creates a new category into the Categories table.
      * 
