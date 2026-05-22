@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.budgetapp.dashboard.DashboardController"
+      spacing="12" alignment="TOP_CENTER"
+      prefWidth="800" prefHeight="600">
+    <padding><Insets top="20" right="20" bottom="20" left="20"/></padding>
+
+    <Label fx:id="welcomeLabel" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+    <Button text="Logout" onAction="#handleLogout"/>
+
+    <!-- TODO: add transaction table, charts, etc. -->
+</VBox>

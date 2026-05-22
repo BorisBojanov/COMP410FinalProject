@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<!-- LoginController is wired here via fx:controller -->
+<VBox xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.budgetapp.LoginController"
+      spacing="12" alignment="CENTER"
+      prefWidth="400" prefHeight="300">
+    <padding><Insets top="40" right="40" bottom="40" left="40"/></padding>
+
+    <Label text="Budget App" style="-fx-font-size: 20px; -fx-font-weight: bold;"/>
+
+    <!-- fx:id must match the @FXML field name in LoginController -->
+    <TextField fx:id="emailField" promptText="Email"/>
+    <PasswordField fx:id="passwordField" promptText="Password"/>
+    <Label fx:id="errorLabel" style="-fx-text-fill: red;"/>
+
+    <!-- onAction must match the @FXML method name in LoginController -->
+    <Button text="Login" onAction="#handleLogin" maxWidth="Infinity"/>
+    <Button text="Register" onAction="#goToRegister" style="-fx-background-color: transparent; -fx-text-fill: blue;"/>
+</VBox>
