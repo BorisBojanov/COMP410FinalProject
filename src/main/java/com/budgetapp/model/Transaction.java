@@ -14,11 +14,13 @@ updateCategory(category: Category)	void	Method
 */
 public class Transaction {
     private int tid;
-    private Double amount;
     private String date;
     private String merchant;
+    private Double amount;
     private String category;
     private int messageMid;
+    private String currency;
+    private String sourceEmailId;
 
 
     public Transaction(int tid, double amount, String date, String merchant, String category, int messageMid) {
@@ -74,4 +76,31 @@ public class Transaction {
     }
 
 
+    public String getCurrency() {
+        return currency;
+    }
+    public void setCurrency(String currency) {
+        this.currency = currency;
+    }
+
+    public String getSourceEmailId() {
+        return sourceEmailId;
+    }
+    public void setSourceEmailId(String sourceEmailId) {
+        this.sourceEmailId = sourceEmailId;
+    }
+
+
+    public void editTransaction() {
+        System.out.println("Editing transaction " + this.tid);
+    }
+
+    public void deleteTransaction() {
+        System.out.println("Deleting transaction " + this.tid);
+    }
+
+    public void updateCategory(Category category) {
+        this.category = category.getCatgoryName();
+        System.out.println("Updated category for transaction " + this.tid + " to " + this.category);
+    }
 }

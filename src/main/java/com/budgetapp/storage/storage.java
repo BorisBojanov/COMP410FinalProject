@@ -11,6 +11,8 @@ import java.util.List;
 
 import com.budgetapp.model.Transaction;
 import com.budgetapp.model.User;
+import com.budgetapp.model.Category;
+import com.budgetapp.model.Budget;
 
 
 // import com.budgetapp.parser.parser;
@@ -49,12 +51,14 @@ saveEmailMessage(email: EmailMessage)	    void	Method
  * 
  * Singleton pattern for storage class to ensure we only have one instance of storage connection
 */
+
 public class storage {
     
     private Connection conn;
     private static storage instance;
     private String connectionUrl = "jdbc:sqlite:budget.db"; // Local file url
     
+    // Private constructor to prevent direct instantiation
     private storage(){
 
         // storage db = storage.getInstance();
@@ -63,6 +67,11 @@ public class storage {
         creatDBTables();
     }
 
+    /** connect
+     * 
+     * Establishes a connection to the SQLite database using the provided URL.
+     * @param url
+    */
     private void connect(String url){
         // Local file url = "jdbc:sqlite:sample.db"; 
         
@@ -80,8 +89,9 @@ public class storage {
         }
     }
 
-    /* getInstance
+    /** getInstance
         Singleton pattern implementation to ensure only one instance of storage exists.
+        * @return the single instance of storage
      */
     public static storage getInstance() {
         if (instance == null) {
@@ -255,6 +265,13 @@ public class storage {
 
 
     // Category methods
+    /** insertCategory
+     * Creates a new category into the Categories table.
+     * 
+     * @param name
+     * @param ruleKeyword
+     * @return
+    */
     public int insertCategory(String name, String ruleKeyword){
         String sql = "insert into Categories (name, rule_Keyword) values (?, ?);";
         
@@ -337,8 +354,43 @@ public class storage {
 
     }
 
-    // Budget methods
-    
+    /** getCategories
+     * Retrieves all categories from the Categories table.
+     * 
+     * @return List of Category objects representing all categories in the database, or an empty list on failure
+    */
+    public List<Category> getCategories(){
+        String sql = "SELECT category_Id, name, rule_Keyword FROM Categories;";
+        try(var statement = this.conn.prepareStatement(sql);){
+            ResultSet rs = statement.executeQuery();
+            
+            List<Category> categories = new ArrayList<>();
+
+            while (rs.next()){
+                int categoryId = rs.getInt("category_Id");
+                String name = rs.getString("name");
+                String ruleKeyword = rs.getString("rule_Keyword");
+                categories.add(new Category(categoryId, name, ruleKeyword));
+            }
+
+        return categories;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<Category>();
+        }
+    }
+
+
+    // Budget methods -------
+    /** insertBudget
+     * 
+     * Inserts a new budget into the Budgets table.
+     *
+     * @param monthlyLimit
+     * @param amountSpent
+     * @return
+    */
     public int insertBudget(Double monthlyLimit, Double amountSpent){
         String sql = "insert into Budgets (monthly_Limit, amount_Spent) values (?, ?);";
 
@@ -362,6 +414,15 @@ public class storage {
         }
     }
 
+    /** updateBudget
+     * 
+     * Updates a budget in the Budgets table.
+     *
+     * @param budgetId
+     * @param monthlyLimit
+     * @param amountSpent
+     * @return
+    */
     public boolean updateBudget(int budgetId, Double monthlyLimit, Double amountSpent){
         String sql = "update Budgets set monthly_Limit = ?, amount_Spent = ? where budget_Id = ?;";
 
@@ -383,6 +444,34 @@ public class storage {
             return false;
         }
     }
+
+    /** getBudgets
+     * 
+     * Retrieves all budgets from the Budgets table.
+     * 
+     * @return
+    */
+    public List<Budget> getBudgets(){
+        String sql = "SELECT budget_Id, monthly_Limit, amount_Spent FROM Budgets;";
+        try(var statement = this.conn.prepareStatement(sql);){
+            ResultSet rs = statement.executeQuery();
+            
+            List<Budget> budgets = new ArrayList<>();
+
+            while (rs.next()){
+                int budgetId = rs.getInt("budget_Id");
+                double monthlyLimit = rs.getDouble("monthly_Limit");
+                double amountSpent = rs.getDouble("amount_Spent");
+                budgets.add(new Budget(budgetId, monthlyLimit, amountSpent));
+            }
+
+        return budgets;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ArrayList<Budget>();
+        }
+    }   
 
 
     // User methods --------

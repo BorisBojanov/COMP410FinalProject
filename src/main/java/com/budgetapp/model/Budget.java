@@ -12,10 +12,16 @@ setLimit(limit: double)	        void	Method
 updateSpending(amount: double)	void	Method
 checkLimit()	                boolean	Method
 */
+
+
 public class Budget {
     private int budgetId;
     private Double monthlyLimit;
     private Double amountSpent;
+
+    // Use for future of having multiple users
+    // private int categoryId;
+    // private int userId; 
 
     // Constructor
     // when creating a new budget

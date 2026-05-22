@@ -20,17 +20,22 @@ parseEmail(email: EmailMessage)	Transaction	Method
 extractDate(body: String)	    Date	Method
 extractMerchant(body: String)	String	Method
 extractAmount(body: String)	    double	Method
+extractCurrency()               String	Method (option)
+detectSubscription()          boolean	Method (option)
 */
-
-import com.budgetapp.storage.storage;
-
+// import java.sql.Statement;
+// import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.Matcher;
 
-/*
-What should your main parser method's signature look like? 
-What parameters does it need, and what should it return?
-*/
+
+import com.budgetapp.storage.storage;
+import com.budgetapp.model.Category;
+// import com.budgetapp.model.Transaction;
+// import com.budgetapp.model.User;
+// import com.budgetapp.model.Budget;
+
 
 public class parser {
 
@@ -45,14 +50,21 @@ public class parser {
         public String merchant;
         public String category; // hardcode "Uncategorized" for now
     }
-
+    /** extractTransaction
+     * This method takes the raw email body as input and uses regex patterns to extract the amount, date, and merchant information.
+     * 
+     * @param body
+     * @return
+    */
     public ParsedTransaction extractTransaction(String body) {
         // Extract structured data from the email body
         // Matcher for each pattern against the body
+        System.out.println("Extracting transaction data from email body:\n" + body + "\n---");
+
         Matcher amountMatcher = amount.matcher(body);
         Matcher dateMatcher = date.matcher(body);
         Matcher merchantMatcher = merchant.matcher(body);
-
+        
         String amountStr = null;
         String dateStr = null;
         String merchantStr = null;
@@ -89,20 +101,55 @@ public class parser {
         parsedTransaction.amount = Double.parseDouble(amountStr);
         parsedTransaction.date = dateStr;
         parsedTransaction.merchant = merchantStr;
-        parsedTransaction.category = "Uncategorized";
+        parsedTransaction.category = "Uncategorized"; // default before loop
 
+        /**
+         * The category will be set by Transaction.setCategory() when we call assignTransaction() in the Category class. For now, we can set it to "Uncategorized" or leave it null.
+         * 
+         * if the email body contains a keyword that matches a category's ruleKeyword, we can set the category to that category's name. 
+         * Need list of categories and their ruleKeywords,
+         * Call getCategories() from storage to get that list, 
+         *  then loop through it and check if the email body contains any of the ruleKeywords. 
+         * If it does, set the category to that category's name.
+         * */
+        List<Category> categories = storage.getInstance().getCategories();
+
+        for (Category category : categories) {
+            String keyword = category.getRuleKeyword().toLowerCase();
+
+            if (body.toLowerCase().contains( keyword )) {
+                parsedTransaction.category = category.getCatgoryName();
+                // System.out.println("Matched category: " + category.getCatgoryName() + " for keyword: " + category.getRuleKeyword());
+                break; // Stop checking after the first match
+
+            } else if (merchantStr.toLowerCase().contains( keyword)){ //also check merchantStr in addition to body
+                parsedTransaction.category = category.getCatgoryName();
+                // System.out.println("Matched category: " + category.getCatgoryName() + " for keyword: " + category.getRuleKeyword());
+                break; // Stop checking after the first match   
+            }
+        }
+        
         return parsedTransaction;
     }
 
+    /** processEmail
+     * This method takes the email's messageId, dateReceived, subject, sender, and body as parameters.
+     * @param messageId
+     * @param dateReceived
+     * @param subject
+     * @param sender
+     * @param body
+     * @return
+    */
     public boolean processEmail(String messageId, String dateReceived,String subject, String sender, String body) {
         // Call checkDouplicateMessages() on the storage instance first
         //       if it's a duplicate, return false immediately
 
         storage db = storage.getInstance();
-            if (db.checkDouplicateMessages(messageId)) {
-                System.out.println("Duplicate message detected. Skipping processing.");
-                return false; // Skip processing if it's a duplicate
-            }
+        if (db.checkDouplicateMessages(messageId)) {
+            System.out.println("Duplicate message detected. Skipping processing.");
+            return false; // Skip processing if it's a duplicate
+        }
     
         // Call extractTransaction(body)
         // if extraction returned null, return false
@@ -129,6 +176,80 @@ public class parser {
         
         return true; // return true if everything succeeded
     }
+
+    /** extractDate
+     * Finds the transaction date in the email body.
+     * @param body
+     * @return
+    */
+    public ParsedTransaction extractDate(String body) {
+        Matcher dateMatcher = date.matcher(body);
+        String dateStr = null;
+
+        if (dateMatcher.find()){
+            dateStr = dateMatcher.group(1);
+            System.out.println("Extracted date: " + dateStr);
+        } else {
+            System.out.println("No date found in the email body.");
+            return null; // Return null if date is missing
+        }
+
+        ParsedTransaction parsedTransaction = new ParsedTransaction(); // Create a new instance of the ParsedTransaction class
+        parsedTransaction.date = dateStr;
+
+        return parsedTransaction;
+    }
+
+    /** extractMerchant
+     * Finds the merchant name in the email body.
+     * @param body
+     * @return
+    */
+    public ParsedTransaction extractMerchant(String body) {
+        Matcher merchantMatcher = merchant.matcher(body);
+        String merchantStr = null;
+
+        if (merchantMatcher.find()){
+            merchantStr = merchantMatcher.group(1);
+            System.out.println("Extracted merchant: " + merchantStr);
+        } else {
+            System.out.println("No merchant found in the email body.");
+            return null; // Return null if merchant is missing
+        }
+
+        ParsedTransaction parsedTransaction = new ParsedTransaction(); // Create a new instance of the ParsedTransaction class
+        parsedTransaction.merchant = merchantStr;
+
+        return parsedTransaction;
+    }
+
+    /** extractAmount
+     * Finds the transaction amount in the email body.
+     * @param body
+     * @return
+    */
+    public ParsedTransaction extractAmount(String body) {
+        Matcher amountMatcher = amount.matcher(body);
+        String amountStr = null;
+
+        if (amountMatcher.find()){
+            amountStr = amountMatcher.group(1);
+            System.out.println("Extracted amount: " + amountStr);
+        } else {
+            System.out.println("No amount found in the email body.");
+            return null; // Return null if amount is missing
+        }
+
+        ParsedTransaction parsedTransaction = new ParsedTransaction(); // Create a new instance of the ParsedTransaction class
+        parsedTransaction.amount = Double.parseDouble(amountStr);
+
+        return parsedTransaction;
+    }
+
+
+
+
+
 }
 
 
