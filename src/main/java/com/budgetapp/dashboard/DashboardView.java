@@ -1,18 +1,28 @@
 package com.budgetapp.dashboard;
 
 import com.budgetapp.model.Transaction;
-import com.budgetapp.service.FakeDataService;
+import com.budgetapp.storage.storage;
+import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.*;
+import java.time.LocalDate;
+import javafx.geometry.Insets;
+
 
 public class DashboardView {
 
+    private ObservableList<Transaction> getStoredTransactions() {
+        return FXCollections.observableArrayList(
+                storage.getInstance().getTransactions()
+        );
+    }
+
     private ObservableList<Transaction> getFilteredTransactions(String month, String year, String category, String searchText) {
-        return FakeDataService.getTransactions().filtered(transaction -> {
+        return getStoredTransactions().filtered(transaction -> {
             boolean matchesYear = transaction.getDate().startsWith(year + "-");
 
             boolean matchesMonth = month.equals("All") ||
@@ -94,7 +104,7 @@ public class DashboardView {
         );
 
         HBox filterSummaryRow = new HBox(20);
-	filterSummaryRow.setAlignment(Pos.CENTER);
+        filterSummaryRow.setAlignment(Pos.CENTER);
         filterSummaryRow.getChildren().addAll(filters, summaryCards);
 
         ObservableList<Transaction> initialTransactions = getFilteredTransactions(
@@ -124,8 +134,20 @@ public class DashboardView {
                 merchantSearch.getText()
         );
 
-        HBox categoryTableRow = new HBox(20);
-        categoryTableRow.getChildren().addAll(categoriesPanel, table);
+	
+
+        Button addButton = new Button("Add");
+	Button editButton = new Button("Edit");
+	Button deleteButton = new Button("Delete");
+
+	HBox actionButtons = new HBox(10);
+	actionButtons.getChildren().addAll(addButton, editButton, deleteButton);
+
+	VBox tableSection = new VBox(10);
+	tableSection.getChildren().addAll(actionButtons, table);
+
+	HBox categoryTableRow = new HBox(20);
+	categoryTableRow.getChildren().addAll(categoriesPanel, tableSection);
 
         VBox dashboard = new VBox(20);
         dashboard.getChildren().addAll(
@@ -169,6 +191,170 @@ public class DashboardView {
         yearFilter.setOnAction(event -> refreshDashboard.run());
         categoryFilter.setOnAction(event -> refreshDashboard.run());
         merchantSearch.textProperty().addListener((obs, oldValue, newValue) -> refreshDashboard.run());
+
+	deleteButton.setOnAction(event -> {
+    	Transaction selected = table.getSelectionModel().getSelectedItem();
+
+    	if (selected == null) {
+        return;
+ 	   }
+
+   	 storage.getInstance().deleteTransaction(selected.getTid());
+   	 refreshDashboard.run();
+	});
+
+	addButton.setOnAction(event -> {
+
+    Dialog<ButtonType> dialog = new Dialog<>();
+    dialog.setTitle("Add Transaction");
+
+    DatePicker datePicker = new DatePicker(LocalDate.now());
+
+    TextField merchantField = new TextField();
+
+    ComboBox<String> categoryBox = new ComboBox<>();
+    categoryBox.getItems().addAll(
+            "Food",
+            "Transport",
+            "Subscription",
+            "Groceries",
+            "Shopping",
+            "Entertainment",
+            "Travel",
+            "Technology",
+            "Health",
+            "Pets",
+            "Books"
+    );
+
+    TextField amountField = new TextField();
+
+    GridPane grid = new GridPane();
+    grid.setHgap(10);
+    grid.setVgap(10);
+    grid.setPadding(new Insets(20));
+
+    grid.add(new Label("Date:"), 0, 0);
+    grid.add(datePicker, 1, 0);
+
+    grid.add(new Label("Merchant:"), 0, 1);
+    grid.add(merchantField, 1, 1);
+
+    grid.add(new Label("Category:"), 0, 2);
+    grid.add(categoryBox, 1, 2);
+
+    grid.add(new Label("Amount:"), 0, 3);
+    grid.add(amountField, 1, 3);
+
+    dialog.getDialogPane().setContent(grid);
+
+    dialog.getDialogPane().getButtonTypes().addAll(
+            ButtonType.OK,
+            ButtonType.CANCEL
+    );
+
+    dialog.showAndWait().ifPresent(response -> {
+
+        if (response == ButtonType.OK) {
+
+            try {
+
+                String date = datePicker.getValue().toString();
+                String merchant = merchantField.getText();
+                String category = categoryBox.getValue();
+                double amount = Double.parseDouble(amountField.getText());
+
+                storage.getInstance().addManualTransaction(
+                        amount,
+                        date,
+                        merchant,
+                        category
+                );
+
+                refreshDashboard.run();
+
+            } catch (Exception e) {
+
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Invalid Input");
+                alert.setHeaderText("Could not add transaction");
+                alert.setContentText("Please fill out all fields correctly.");
+                alert.showAndWait();
+            }
+        }
+    });
+});
+
+	editButton.setOnAction(event -> {
+
+    Transaction selected = table.getSelectionModel().getSelectedItem();
+
+    if (selected == null) {
+        return;
+    }
+
+    Dialog<ButtonType> dialog = new Dialog<>();
+    dialog.setTitle("Edit Transaction");
+
+    DatePicker datePicker = new DatePicker(LocalDate.parse(selected.getDate()));
+
+    TextField merchantField = new TextField(selected.getMerchant());
+
+    ComboBox<String> categoryBox = new ComboBox<>();
+    categoryBox.getItems().addAll(
+            "Food", "Transport", "Subscription", "Groceries",
+            "Shopping", "Entertainment", "Travel", "Technology",
+            "Health", "Pets", "Books"
+    );
+    categoryBox.setValue(selected.getCategory());
+
+    TextField amountField = new TextField(String.valueOf(selected.getAmount()));
+
+    GridPane grid = new GridPane();
+    grid.setHgap(10);
+    grid.setVgap(10);
+    grid.setPadding(new Insets(20));
+
+    grid.add(new Label("Date:"), 0, 0);
+    grid.add(datePicker, 1, 0);
+
+    grid.add(new Label("Merchant:"), 0, 1);
+    grid.add(merchantField, 1, 1);
+
+    grid.add(new Label("Category:"), 0, 2);
+    grid.add(categoryBox, 1, 2);
+
+    grid.add(new Label("Amount:"), 0, 3);
+    grid.add(amountField, 1, 3);
+
+    dialog.getDialogPane().setContent(grid);
+    dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+    dialog.showAndWait().ifPresent(response -> {
+
+        if (response == ButtonType.OK) {
+
+            try {
+                storage.getInstance().updateTransaction(
+                        selected.getTid(),
+                        Double.parseDouble(amountField.getText()),
+                        datePicker.getValue().toString(),
+                        merchantField.getText(),
+                        categoryBox.getValue()
+                );
+
+                refreshDashboard.run();
+
+            } catch (Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Invalid Input");
+                alert.setHeaderText("Could not edit transaction");
+                alert.setContentText("Please fill out all fields correctly.");
+                alert.showAndWait();
+            }
+        }
+    });
+});
 
         VBox root = new VBox(20);
         root.setStyle("-fx-padding: 20;");
@@ -258,43 +444,42 @@ public class DashboardView {
     }
 
     private PieChart createPieChart(ObservableList<Transaction> transactions) {
-    PieChart pieChart = new PieChart();
+        PieChart pieChart = new PieChart();
 
-    pieChart.setTitle("Spending by Category");
-    pieChart.setLegendVisible(false);
+        pieChart.setTitle("Spending by Category");
+        pieChart.setLegendVisible(false);
 
-    pieChart.setPrefWidth(500);
-    pieChart.setPrefHeight(320);
+        pieChart.setPrefWidth(500);
+        pieChart.setPrefHeight(320);
 
-    double grandTotal = transactions.stream()
-            .mapToDouble(Transaction::getAmount)
-            .sum();
+        double grandTotal = transactions.stream()
+                .mapToDouble(Transaction::getAmount)
+                .sum();
 
-    String[] categories = {
-            "Food", "Transport", "Subscription", "Groceries", "Shopping",
-            "Entertainment", "Travel", "Technology", "Health", "Pets", "Books"
-    };
+        String[] categories = {
+                "Food", "Transport", "Subscription", "Groceries", "Shopping",
+                "Entertainment", "Travel", "Technology", "Health", "Pets", "Books"
+        };
 
-    for (String category : categories) {
-        double total = getCategoryTotal(transactions, category);
+        for (String category : categories) {
+            double total = getCategoryTotal(transactions, category);
 
-        if (total > 0) {
+            if (total > 0) {
+                double percent = grandTotal == 0
+                        ? 0
+                        : (total / grandTotal) * 100;
 
-            double percent = grandTotal == 0
-                    ? 0
-                    : (total / grandTotal) * 100;
-
-            pieChart.getData().add(
-                    new PieChart.Data(
-                            String.format("%s %.1f%%", category, percent),
-                            total
-                    )
-            );
+                pieChart.getData().add(
+                        new PieChart.Data(
+                                String.format("%s %.1f%%", category, percent),
+                                total
+                        )
+                );
+            }
         }
-    }
 
-    return pieChart;
-}
+        return pieChart;
+    }
 
     private VBox createCategoryListPanel(ObservableList<Transaction> transactions) {
         VBox categoryPanel = new VBox(12);
@@ -372,7 +557,7 @@ public class DashboardView {
 
         BarChart<String, Number> barChart = new BarChart<>(xAxis, yAxis);
         barChart.setTitle("Monthly Spending Trend");
-	barChart.setLegendVisible(false);
+        barChart.setLegendVisible(false);
 
         XYChart.Series<String, Number> spendingSeries = new XYChart.Series<>();
         spendingSeries.setName(selectedCategory.equals("All") ? "All Categories" : selectedCategory);
@@ -385,7 +570,7 @@ public class DashboardView {
         for (int i = 1; i <= 12; i++) {
             String monthNumber = String.format("%02d", i);
 
-            double total = FakeDataService.getTransactions().stream()
+            double total = getStoredTransactions().stream()
                     .filter(transaction -> transaction.getDate().startsWith(selectedYear + "-" + monthNumber))
                     .filter(transaction ->
                             selectedCategory.equals("All") ||
