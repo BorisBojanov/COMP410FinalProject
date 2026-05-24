@@ -1,0 +1,36 @@
+.root {
+    -fx-font-family: "Segoe UI";
+    -fx-background-color: #ffffff;
+}
+
+.title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+.card {
+    -fx-padding: 15;
+    -fx-background-color: #eeeeee;
+    -fx-border-color: #cccccc;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+}
+
+.card-value {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+}
+
+.sidebar {
+    -fx-padding: 15;
+    -fx-background-color: #f3f3f3;
+}
+
+.chart-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.table-view {
+    -fx-border-color: #cccccc;
+}
