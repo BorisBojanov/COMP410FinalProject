@@ -10,6 +10,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.budgetapp.model.Transaction;
+<<<<<<< HEAD
+=======
+import com.budgetapp.parser.parser;
+>>>>>>> origin/feature/storage
 
 /**
  * Data that needs to be stored in SQLite
@@ -233,6 +237,7 @@ public class storage {
         }
     }
 
+<<<<<<< HEAD
 	public void seedSampleData() {
     if (!getTransactions().isEmpty()) {
         return;
@@ -312,4 +317,6 @@ public boolean addManualTransaction(double amount, String date, String merchant,
     return insertTransaction(amount, date, merchant, category, mid);
 }
 
+=======
+>>>>>>> origin/feature/storage
 }
