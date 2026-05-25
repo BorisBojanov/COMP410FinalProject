@@ -43,25 +43,25 @@ Users connect their email account (read-only), and the app extracts transaction 
 
 ---
 
-## Current Prototype Features (feature/dashboard-ui)
+## Current Prototype Features (feature/budget-progress-ui)
 
 The current JavaFX dashboard prototype includes:
 
-- Dynamic transaction dashboard using temporary fake financial data
-- Monthly, yearly, and category-based transaction filtering
-- Live merchant search/filter functionality
-- Interactive spending analytics dashboard
+- Dynamic transaction dashboard connected to local SQLite-backed transaction storage
+- Year and month filtering, with the current month selected by default
+- **Current Month** button to quickly reset the dashboard to the current month
+- Top filter row showing total spending and total transaction count for the selected period
 - Pie chart visualization for spending categories
 - Bar chart visualization for monthly spending trends
 - Scrollable transaction table
-- Dynamic summary cards:
-  - Total spending
-  - Remaining budget
-  - Transaction count
+- Manual transaction controls to add, edit, and delete transactions
+- Budget progress bars by category
+- Budget controls to add/edit category budgets and delete category budgets
 - Centralized JavaFX CSS styling system
 - Modular layered architecture:
   - `dashboard/`
   - `model/`
+  - `storage/`
   - `service/`
 - Maven + JavaFX build configuration
 - Feature-branch Git workflow
@@ -74,14 +74,15 @@ Users can currently filter dashboard data by:
 
 - Year
 - Month
-- Transaction category
-- Merchant name search
 
-All dashboard components update dynamically:
+The dashboard also includes a **Current Month** button. The dashboard defaults to the current month when opened, and all dashboard components update dynamically when the selected year or month changes:
+
 - transaction table
-- charts
-- summary cards
-- category breakdowns
+- pie chart
+- monthly spending chart
+- budget progress bars
+- total spending value
+- total transaction count
 
 ---
 
@@ -133,6 +134,57 @@ mvn install
 ```
 
 > Full setup instructions (email API credentials, database config) will be added as the project progresses.
+
+### Testing the JavaFX Dashboard UI
+
+To test the current dashboard UI, switch to the feature branch that contains the budget progress dashboard work:
+
+```bash
+git switch feature/budget-progress-ui
+```
+
+Make sure the branch is up to date:
+
+```bash
+git pull origin feature/budget-progress-ui
+```
+
+Run the JavaFX application with Maven:
+
+```bash
+mvn javafx:run
+```
+
+When the app opens, verify the following UI features:
+
+- The dashboard opens without errors.
+- The top filter row shows **Year**, **Month**, **Current Month**, **Total Spend**, and **Total Transactions**.
+- The dashboard defaults to the current month.
+- Changing the year or month updates the transaction table, pie chart, monthly spending chart, budget progress bars, total spend, and total transactions.
+- The **Current Month** button returns the dashboard to the current month.
+- Transactions can be added, edited, and deleted from the transaction table controls.
+- Category budgets can be added or edited using **Add/Edit Budget**.
+- Category budgets can be removed using **Delete Budget**.
+- Budget progress bars update after budget or transaction changes.
+
+If the app does not start, first confirm that Java and Maven are installed:
+
+```bash
+java -version
+mvn -version
+```
+
+Then confirm you are on the correct branch:
+
+```bash
+git branch
+```
+
+The active branch should show:
+
+```bash
+* feature/budget-progress-ui
+```
 
 ---
 
