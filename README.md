@@ -1,8 +1,8 @@
 BudgetApp — COMP 410 Final Project
 University of Athabasca | COMP 410 | Dr. Volodymyr Voytenko
-Team Member	Student ID
-Boris Bojanov	3608550
-Michael Jean	3361470
+Team Member
+Boris Bojanov
+Michael Jean
 ---
 Project Overview
 BudgetApp is a JavaFX desktop budgeting prototype developed for the COMP 410 final project. The app helps users track personal spending by storing transactions locally, categorizing expenses, displaying budget progress, and showing spending analytics on a dashboard.
