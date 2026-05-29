@@ -174,7 +174,7 @@ Expected successful result:
 ```text
 Tests run: 6, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
-```
+``` 
 ---
 Manual Testing Checklist
 [ ] App opens without errors.
