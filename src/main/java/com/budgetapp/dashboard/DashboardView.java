@@ -2,6 +2,7 @@ package com.budgetapp.dashboard;
 
 import com.budgetapp.model.Transaction;
 import com.budgetapp.storage.storage;
+import com.budgetapp.service.EmailImportService;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -14,12 +15,7 @@ import java.time.LocalDate;
 
 public class DashboardView {
 
-    private final ObservableList<Budget> budgets = FXCollections.observableArrayList(
-            new Budget("Food", 400.00),
-            new Budget("Transport", 150.00),
-            new Budget("Groceries", 500.00),
-            new Budget("Subscription", 100.00)
-    );
+    private final ObservableList<Budget> budgets = FXCollections.observableArrayList();
 
     private final String[] categories = {
             "Food", "Transport", "Subscription", "Groceries", "Shopping",
@@ -87,6 +83,8 @@ public class DashboardView {
     }
 
     public VBox getView() {
+        loadBudgetsFromDatabase();
+
         Label title = new Label("BudgetApp Dashboard");
         title.getStyleClass().add("title");
 
@@ -107,6 +105,7 @@ public class DashboardView {
         monthFilter.setValue(getCurrentMonthName());
 
         Button currentMonthButton = new Button("Current Month");
+        Button importEmailButton = new Button("Import Email Transactions");
 
         Label totalSpendLabel = new Label();
         Label totalTransactionsLabel = new Label();
@@ -118,6 +117,7 @@ public class DashboardView {
                 new Label("Year:"), yearFilter,
                 new Label("Month:"), monthFilter,
                 currentMonthButton,
+                importEmailButton,
                 new Separator(javafx.geometry.Orientation.VERTICAL),
                 totalSpendLabel,
                 totalTransactionsLabel
@@ -210,6 +210,20 @@ public class DashboardView {
             refreshDashboard.run();
         });
 
+        importEmailButton.setOnAction(event -> {
+            importEmailButton.setDisable(true);
+            EmailImportService.ImportResult result = new EmailImportService().importTransactionsFromEmail();
+            importEmailButton.setDisable(false);
+
+            Alert alert = new Alert(Alert.AlertType.INFORMATION);
+            alert.setTitle("Email Import");
+            alert.setHeaderText("Import complete");
+            alert.setContentText(result.getMessage());
+            alert.showAndWait();
+
+            refreshDashboard.run();
+        });
+
         addBudgetButton.setOnAction(event -> showBudgetDialog(null, refreshDashboard));
 
         deleteBudgetButton.setOnAction(event -> {
@@ -236,6 +250,7 @@ public class DashboardView {
 
                 if (budgetToDelete != null) {
                     budgets.remove(budgetToDelete);
+                    storage.getInstance().deleteBudget(category);
                     refreshDashboard.run();
                 }
             });
@@ -388,6 +403,21 @@ public class DashboardView {
         return new VBox(scrollPane);
     }
 
+    private void loadBudgetsFromDatabase() {
+        budgets.clear();
+
+        for (storage.BudgetRecord record : storage.getInstance().getBudgets()) {
+            budgets.add(new Budget(record.getCategory(), record.getAmount()));
+        }
+
+        if (budgets.isEmpty()) {
+            storage.getInstance().seedDefaultBudgets();
+            for (storage.BudgetRecord record : storage.getInstance().getBudgets()) {
+                budgets.add(new Budget(record.getCategory(), record.getAmount()));
+            }
+        }
+    }
+
     private void updateFilterSummaryLabels(
             Label totalSpendLabel,
             Label totalTransactionsLabel,
@@ -452,6 +482,7 @@ public class DashboardView {
                         budgets.add(new Budget(category, amount));
                     }
 
+                    storage.getInstance().upsertBudget(category, amount);
                     refreshDashboard.run();
                 } catch (Exception e) {
                     Alert alert = new Alert(Alert.AlertType.ERROR);

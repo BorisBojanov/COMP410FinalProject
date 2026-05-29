@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.budgetapp.model.Transaction;
+import com.budgetapp.service.CategoryService;
 
 public class storage {
 
@@ -17,9 +18,28 @@ public class storage {
     private static storage instance;
     private String connectionUrl = "jdbc:sqlite:budget.db";
 
+    public static class BudgetRecord {
+        private final String category;
+        private final double amount;
+
+        public BudgetRecord(String category, double amount) {
+            this.category = category;
+            this.amount = amount;
+        }
+
+        public String getCategory() {
+            return category;
+        }
+
+        public double getAmount() {
+            return amount;
+        }
+    }
+
     private storage() {
         connect(connectionUrl);
         creatDBTables();
+        seedDefaultBudgets();
     }
 
     private void connect(String url) {
@@ -64,9 +84,15 @@ public class storage {
                 "foreign key (message_id) references Messages(mid)" +
                 ");";
 
+        String createTableBudgets = "create table if not exists Budgets (" +
+                "category text primary key, " +
+                "amount real not null" +
+                ");";
+
         try (var statement = this.conn.createStatement()) {
             statement.execute(createTableMessages);
             statement.execute(createTableTransactions);
+            statement.execute(createTableBudgets);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -132,7 +158,7 @@ public class storage {
     }
 
     public List<Transaction> getTransactions() {
-        String sql = "SELECT * FROM Transactions;";
+        String sql = "SELECT * FROM Transactions ORDER BY date DESC, tid DESC;";
 
         try (PreparedStatement statement = this.conn.prepareStatement(sql)) {
             ResultSet rs = statement.executeQuery();
@@ -162,13 +188,13 @@ public class storage {
             return;
         }
 
-        int mid1 = insertMessage("sample-message-1", "2026-05-01", "Transaction Alert", "bank@example.com", "Starbucks purchase");
+        int mid1 = insertMessage("sample-message-1", "2026-05-01", "Transaction Alert", "bank@example.com", "You spent $6.25 at Starbucks on 2026-05-01");
         insertTransaction(6.25, "2026-05-01", "Starbucks", "Food", mid1);
 
-        int mid2 = insertMessage("sample-message-2", "2026-05-02", "Transaction Alert", "bank@example.com", "Uber purchase");
+        int mid2 = insertMessage("sample-message-2", "2026-05-02", "Transaction Alert", "bank@example.com", "You spent $18.40 at Uber on 2026-05-02");
         insertTransaction(18.40, "2026-05-02", "Uber", "Transport", mid2);
 
-        int mid3 = insertMessage("sample-message-3", "2026-05-03", "Transaction Alert", "bank@example.com", "Netflix purchase");
+        int mid3 = insertMessage("sample-message-3", "2026-05-03", "Transaction Alert", "bank@example.com", "You spent $16.99 at Netflix on 2026-05-03");
         insertTransaction(16.99, "2026-05-03", "Netflix", "Subscription", mid3);
     }
 
@@ -204,6 +230,10 @@ public class storage {
     }
 
     public boolean addManualTransaction(double amount, String date, String merchant, String category) {
+        if (category == null || category.isBlank()) {
+            category = CategoryService.categorize(merchant, amount);
+        }
+
         int mid = insertMessage(
                 "manual-" + System.currentTimeMillis(),
                 date,
@@ -217,5 +247,60 @@ public class storage {
         }
 
         return insertTransaction(amount, date, merchant, category, mid);
+    }
+
+    public List<BudgetRecord> getBudgets() {
+        String sql = "SELECT category, amount FROM Budgets ORDER BY category;";
+        List<BudgetRecord> budgets = new ArrayList<>();
+
+        try (PreparedStatement statement = this.conn.prepareStatement(sql)) {
+            ResultSet rs = statement.executeQuery();
+
+            while (rs.next()) {
+                budgets.add(new BudgetRecord(rs.getString("category"), rs.getDouble("amount")));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        return budgets;
+    }
+
+    public boolean upsertBudget(String category, double amount) {
+        String sql = "INSERT INTO Budgets(category, amount) VALUES(?, ?) " +
+                "ON CONFLICT(category) DO UPDATE SET amount = excluded.amount;";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql)) {
+            prepared.setString(1, category);
+            prepared.setDouble(2, amount);
+            return prepared.executeUpdate() >= 1;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public boolean deleteBudget(String category) {
+        String sql = "DELETE FROM Budgets WHERE category = ?;";
+
+        try (PreparedStatement prepared = this.conn.prepareStatement(sql)) {
+            prepared.setString(1, category);
+            return prepared.executeUpdate() == 1;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public void seedDefaultBudgets() {
+        if (!getBudgets().isEmpty()) {
+            return;
+        }
+
+        upsertBudget("Food", 400.00);
+        upsertBudget("Transport", 150.00);
+        upsertBudget("Groceries", 500.00);
+        upsertBudget("Subscription", 100.00);
     }
 }
